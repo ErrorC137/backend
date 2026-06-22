@@ -6,9 +6,8 @@ services:
   - type: web
     name: matdao-ip-engine
     runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     plan: starter
     healthCheckPath: /health
     envVars:
@@ -24,8 +23,6 @@ services:
         value: https://matdao-platform-v1-ms5jvg6it-scottgaming70-5109s-projects.vercel.app
       - key: REPORT_SIGNING_SECRET
         generateValue: true
-      - key: PYTHON_VERSION
-        value: "3.12.0"
 
   # Node TRL Services (R2C Leaderboard, AI Auditor, Co-founder Match)
   - type: web
