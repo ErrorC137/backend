@@ -1,0 +1,15 @@
+{
+  "A61K": {"sector_name": "Pharmaceutical Preparations", "v_baseline_usd": 2500000, "floor_cost_usd": 450000, "royalty_rate": 0.08, "nace": "21.20"},
+  "C12N": {"sector_name": "Biotechnology & Genetic Engineering", "v_baseline_usd": 3200000, "floor_cost_usd": 620000, "royalty_rate": 0.10, "nace": "72.11"},
+  "H01L": {"sector_name": "Semiconductor Devices", "v_baseline_usd": 4800000, "floor_cost_usd": 890000, "royalty_rate": 0.06, "nace": "26.11"},
+  "G06F": {"sector_name": "Computing & AI Systems", "v_baseline_usd": 2100000, "floor_cost_usd": 380000, "royalty_rate": 0.05, "nace": "62.01"},
+  "C07D": {"sector_name": "Organic Chemistry Compounds", "v_baseline_usd": 1900000, "floor_cost_usd": 340000, "royalty_rate": 0.07, "nace": "20.59"},
+  "B01J": {"sector_name": "Chemical & Physical Processes", "v_baseline_usd": 1600000, "floor_cost_usd": 290000, "royalty_rate": 0.06, "nace": "20.13"},
+  "H01M": {"sector_name": "Battery & Energy Storage", "v_baseline_usd": 3600000, "floor_cost_usd": 680000, "royalty_rate": 0.07, "nace": "27.20"},
+  "G01N": {"sector_name": "Sensing & Diagnostics", "v_baseline_usd": 1800000, "floor_cost_usd": 320000, "royalty_rate": 0.06, "nace": "26.51"},
+  "H05H": {"sector_name": "Fusion & Advanced Energy", "v_baseline_usd": 8500000, "floor_cost_usd": 2100000, "royalty_rate": 0.04, "nace": "35.11"},
+  "B29C": {"sector_name": "Advanced Manufacturing", "v_baseline_usd": 1400000, "floor_cost_usd": 260000, "royalty_rate": 0.05, "nace": "25.62"},
+  "A61B": {"sector_name": "Medical Devices", "v_baseline_usd": 2200000, "floor_cost_usd": 410000, "royalty_rate": 0.07, "nace": "32.50"},
+  "C08G": {"sector_name": "Polymers & Materials", "v_baseline_usd": 1300000, "floor_cost_usd": 240000, "royalty_rate": 0.05, "nace": "20.16"},
+  "DEFAULT": {"sector_name": "General Deep Tech", "v_baseline_usd": 1500000, "floor_cost_usd": 275000, "royalty_rate": 0.05, "nace": "72.19"}
+}

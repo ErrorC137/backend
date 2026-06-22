@@ -1,0 +1,407 @@
+{
+  "dataset": "patents-public-data.patents.publications",
+  "description": "Curated deep-tech subset in Google Patents Public Data BigQuery schema. Expand via scripts/import_google_patents.py with your own BigQuery CSV/JSON exports.",
+  "query_reference": "SELECT publication_number, country_code, title_localized, abstract_localized, claims_localized, ipc FROM patents-public-data.patents.publications WHERE country_code='US' LIMIT N",
+  "publications": [
+    {
+      "publication_number": "US-10834521-B2",
+      "country_code": "US",
+      "publication_date": 20201124,
+      "title_localized": [{"text": "CRISPR-Cas9 gene editing with high-fidelity guide RNA scaffolds", "language": "en"}],
+      "abstract_localized": [{"text": "Systems and methods for editing a target nucleic acid sequence in a cell using a CRISPR-Cas9 complex comprising an engineered guide RNA scaffold that reduces off-target cleavage while maintaining on-target editing efficiency above 75 percent in mammalian cells.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: delivering a Cas9 nuclease and a guide RNA into a mammalian cell; binding the guide RNA to a target genomic locus; and cleaving the target sequence to introduce a programmed edit.", "language": "en"}],
+      "ipc": [{"code": "C12N15/113"}],
+      "assignee": ["Broad Institute Inc."]
+    },
+    {
+      "publication_number": "US-10934567-B2",
+      "country_code": "US",
+      "publication_date": 20210316,
+      "title_localized": [{"text": "Base editor compositions for programmable C-to-T conversion", "language": "en"}],
+      "abstract_localized": [{"text": "Fusion proteins combining a catalytically impaired Cas9 with a cytidine deaminase domain enable precise single-nucleotide base editing without double-strand DNA breaks, useful for correcting pathogenic point mutations in human disease models.", "language": "en"}],
+      "claims_localized": [{"text": "A base editor fusion protein comprising a Cas9 nickase fused to a cytidine deaminase, configured to deaminate a target cytosine within a protospacer window.", "language": "en"}],
+      "ipc": [{"code": "C12N15/113"}],
+      "assignee": ["Editas Medicine Inc."]
+    },
+    {
+      "publication_number": "US-11098765-B2",
+      "country_code": "US",
+      "publication_date": 20210824,
+      "title_localized": [{"text": "mRNA lipid nanoparticle vaccine formulation with enhanced stability", "language": "en"}],
+      "abstract_localized": [{"text": "Lipid nanoparticle compositions encapsulating modified mRNA encoding immunogenic antigens, exhibiting improved thermal stability and sustained expression in vivo for prophylactic vaccination against infectious pathogens.", "language": "en"}],
+      "claims_localized": [{"text": "A pharmaceutical composition comprising: a lipid nanoparticle; and an mRNA molecule encoding an antigen, wherein the composition induces a neutralizing antibody response in a mammal.", "language": "en"}],
+      "ipc": [{"code": "A61K9/127"}],
+      "assignee": ["ModernaTX Inc."]
+    },
+    {
+      "publication_number": "US-10765432-B2",
+      "country_code": "US",
+      "publication_date": 20200908,
+      "title_localized": [{"text": "Bispecific antibody constructs for T-cell redirection in oncology", "language": "en"}],
+      "abstract_localized": [{"text": "Bispecific antibody molecules simultaneously binding a tumor-associated antigen and CD3 on T cells to redirect cytotoxic T-cell activity against solid tumors, with reduced cytokine release through affinity-tuned binding domains.", "language": "en"}],
+      "claims_localized": [{"text": "A bispecific antibody comprising a first antigen-binding domain specific for a tumor marker and a second antigen-binding domain specific for CD3, linked by a flexible peptide linker.", "language": "en"}],
+      "ipc": [{"code": "C07K16/28"}],
+      "assignee": ["Amgen Inc."]
+    },
+    {
+      "publication_number": "US-10654321-B2",
+      "country_code": "US",
+      "publication_date": 20200519,
+      "title_localized": [{"text": "Perovskite solar cell with 2D/3D heterostructure passivation layer", "language": "en"}],
+      "abstract_localized": [{"text": "Photovoltaic devices incorporating a mixed-dimensional perovskite heterostructure that passivates grain boundaries and suppresses ion migration, achieving power conversion efficiencies exceeding 24 percent under AM1.5G illumination.", "language": "en"}],
+      "claims_localized": [{"text": "A solar cell comprising: a 3D perovskite absorber layer; a 2D perovskite passivation layer disposed on a surface of the 3D layer; and charge transport layers configured for electron and hole extraction.", "language": "en"}],
+      "ipc": [{"code": "H01L31/0224"}],
+      "assignee": ["Oxford PV Ltd."]
+    },
+    {
+      "publication_number": "US-10543210-B2",
+      "country_code": "US",
+      "publication_date": 20200121,
+      "title_localized": [{"text": "Gallium nitride power transistor with integrated gate driver", "language": "en"}],
+      "abstract_localized": [{"text": "Monolithic integration of GaN high-electron-mobility transistors with CMOS gate driver circuitry on a silicon substrate for high-frequency power conversion applications in electric vehicles and data center power supplies.", "language": "en"}],
+      "claims_localized": [{"text": "A power device comprising: a GaN HEMT formed on a silicon substrate; and an integrated gate driver circuit monolithically formed adjacent to the HEMT.", "language": "en"}],
+      "ipc": [{"code": "H01L29/778"}],
+      "assignee": ["Infineon Technologies AG"]
+    },
+    {
+      "publication_number": "US-10432109-B2",
+      "country_code": "US",
+      "publication_date": 20191008,
+      "title_localized": [{"text": "Transformer neural network for molecular property prediction from SMILES", "language": "en"}],
+      "abstract_localized": [{"text": "A deep learning architecture employing multi-head self-attention over tokenized molecular string representations to predict binding affinity, solubility, and synthetic accessibility without hand-engineered molecular descriptors.", "language": "en"}],
+      "claims_localized": [{"text": "A computer-implemented method comprising: tokenizing a molecular structure string; processing tokens through a transformer encoder; and outputting one or more predicted molecular properties.", "language": "en"}],
+      "ipc": [{"code": "G06N3/08"}],
+      "assignee": ["Insilico Medicine"]
+    },
+    {
+      "publication_number": "US-10321098-B2",
+      "country_code": "US",
+      "publication_date": 20190618,
+      "title_localized": [{"text": "Federated learning system for privacy-preserving clinical model training", "language": "en"}],
+      "abstract_localized": [{"text": "Distributed machine learning framework enabling multiple healthcare institutions to collaboratively train diagnostic models by exchanging encrypted gradient updates rather than raw patient records, incorporating differential privacy guarantees.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: training local models at a plurality of nodes on private datasets; aggregating encrypted model updates at a central coordinator; and distributing an updated global model without exposing raw patient data.", "language": "en"}],
+      "ipc": [{"code": "G06F21/62"}],
+      "assignee": ["Google LLC"]
+    },
+    {
+      "publication_number": "US-10210987-B2",
+      "country_code": "US",
+      "publication_date": 20190219,
+      "title_localized": [{"text": "Solid-state lithium metal battery with sulfide ceramic electrolyte", "language": "en"}],
+      "abstract_localized": [{"text": "All-solid-state battery cells utilizing a lithium argyrodite sulfide electrolyte layer between a lithium metal anode and a nickel-rich cathode, achieving energy densities above 400 Wh/kg at room temperature.", "language": "en"}],
+      "claims_localized": [{"text": "A battery cell comprising: a lithium metal anode; a cathode comprising a nickel-rich active material; and a sulfide-based solid electrolyte layer interposed between the anode and cathode.", "language": "en"}],
+      "ipc": [{"code": "H01M10/0562"}],
+      "assignee": ["QuantumScape Corp."]
+    },
+    {
+      "publication_number": "US-10109876-B2",
+      "country_code": "US",
+      "publication_date": 20181030,
+      "title_localized": [{"text": "Continuous flow microreactor for pharmaceutical intermediate synthesis", "language": "en"}],
+      "abstract_localized": [{"text": "Microfluidic reactor systems with immobilized heterogeneous catalysts enabling continuous synthesis of active pharmaceutical ingredients with improved yield, reduced waste, and precise temperature control at the millisecond scale.", "language": "en"}],
+      "claims_localized": [{"text": "A reactor comprising: a microfluidic channel containing immobilized catalyst particles; an inlet for continuous reagent flow; and an integrated heat exchange module maintaining reaction temperature within a defined range.", "language": "en"}],
+      "ipc": [{"code": "B01J19/0093"}],
+      "assignee": ["Corning Inc."]
+    },
+    {
+      "publication_number": "US-10098765-B2",
+      "country_code": "US",
+      "publication_date": 20181023,
+      "title_localized": [{"text": "Microfluidic droplet generator for single-cell RNA sequencing", "language": "en"}],
+      "abstract_localized": [{"text": "Droplet microfluidics platform encapsulating individual cells with barcoded beads and reagents for high-throughput single-cell transcriptome profiling, enabling parallel capture of thousands of cells per run.", "language": "en"}],
+      "claims_localized": [{"text": "A microfluidic device comprising: a flow-focusing junction forming aqueous droplets in an oil carrier; barcoded capture beads; and reagent channels for cell lysis and reverse transcription within each droplet.", "language": "en"}],
+      "ipc": [{"code": "C12Q1/686"}],
+      "assignee": ["10x Genomics Inc."]
+    },
+    {
+      "publication_number": "US-9987654-B2",
+      "country_code": "US",
+      "publication_date": 20180529,
+      "title_localized": [{"text": "Quantum dot enhanced LCD display with wide color gamut", "language": "en"}],
+      "abstract_localized": [{"text": "Display panel incorporating a quantum dot color conversion film between a blue LED backlight and LCD pixels to achieve Rec.2020 color gamut coverage with improved luminance efficiency compared to conventional phosphor-based displays.", "language": "en"}],
+      "claims_localized": [{"text": "A display comprising: a blue light source; a quantum dot conversion layer emitting red and green light upon blue excitation; and an LCD pixel array modulating converted light.", "language": "en"}],
+      "ipc": [{"code": "H01L33/50"}],
+      "assignee": ["Samsung Display Co Ltd."]
+    },
+    {
+      "publication_number": "US-9876543-B2",
+      "country_code": "US",
+      "publication_date": 20180123,
+      "title_localized": [{"text": "Selective JAK inhibitor for autoimmune disease treatment", "language": "en"}],
+      "abstract_localized": [{"text": "Small molecule Janus kinase inhibitors with selectivity for JAK1 over JAK2, demonstrating efficacy in rheumatoid arthritis and inflammatory bowel disease with an improved hematologic safety profile.", "language": "en"}],
+      "claims_localized": [{"text": "A compound of formula I, or a pharmaceutically acceptable salt thereof, wherein the compound selectively inhibits JAK1 kinase activity at sub-micromolar IC50 concentrations.", "language": "en"}],
+      "ipc": [{"code": "A61K31/437"}],
+      "assignee": ["Pfizer Inc."]
+    },
+    {
+      "publication_number": "US-9765432-B2",
+      "country_code": "US",
+      "publication_date": 20170919,
+      "title_localized": [{"text": "CAR-T cell therapy with synthetic Notch receptor activation", "language": "en"}],
+      "abstract_localized": [{"text": "Genetically engineered T cells expressing chimeric antigen receptors combined with synthetic Notch receptors that require dual antigen recognition for full activation, reducing off-tumor toxicity in solid tumor applications.", "language": "en"}],
+      "claims_localized": [{"text": "An engineered T cell comprising: a chimeric antigen receptor targeting a first tumor antigen; and a synthetic Notch receptor requiring binding of a second antigen for transcriptional activation of effector genes.", "language": "en"}],
+      "ipc": [{"code": "C12N15/62"}],
+      "assignee": ["University of California"]
+    },
+    {
+      "publication_number": "US-9654321-B2",
+      "country_code": "US",
+      "publication_date": 20170516,
+      "title_localized": [{"text": "Photonic integrated circuit for optical neural network inference", "language": "en"}],
+      "abstract_localized": [{"text": "Silicon photonic chip implementing matrix-vector multiplication using Mach-Zehnder interferometer meshes for energy-efficient inference in deep neural networks at terabit-per-second throughput.", "language": "en"}],
+      "claims_localized": [{"text": "An optical processor comprising: a plurality of Mach-Zehnder interferometers arranged in a mesh configuration; phase shifters encoding neural network weights; and photodetectors outputting analog inference results.", "language": "en"}],
+      "ipc": [{"code": "G06N3/063"}],
+      "assignee": ["Lightmatter Inc."]
+    },
+    {
+      "publication_number": "US-9543210-B2",
+      "country_code": "US",
+      "publication_date": 20170117,
+      "title_localized": [{"text": "Metal-organic framework for carbon dioxide capture and storage", "language": "en"}],
+      "abstract_localized": [{"text": "Porous metal-organic framework materials with amine-functionalized linkers exhibiting high CO2 adsorption capacity and selectivity over nitrogen at flue gas concentrations, suitable for post-combustion carbon capture.", "language": "en"}],
+      "claims_localized": [{"text": "A metal-organic framework comprising: a metal cluster node; and organic linkers bearing amine functional groups, wherein the framework adsorbs CO2 at partial pressures characteristic of flue gas.", "language": "en"}],
+      "ipc": [{"code": "B01D53/02"}],
+      "assignee": ["ExxonMobil Corp."]
+    },
+    {
+      "publication_number": "US-9432109-B2",
+      "country_code": "US",
+      "publication_date": 20160830,
+      "title_localized": [{"text": "Autonomous vehicle LiDAR with solid-state beam steering", "language": "en"}],
+      "abstract_localized": [{"text": "Solid-state LiDAR sensor using optical phased arrays to steer laser beams without mechanical rotation, providing 360-degree range imaging for autonomous navigation with millisecond frame rates.", "language": "en"}],
+      "claims_localized": [{"text": "A LiDAR system comprising: a laser source; an optical phased array configured to steer emitted laser pulses across a field of view; and a detector array measuring time-of-flight for each steered beam.", "language": "en"}],
+      "ipc": [{"code": "G01S17/931"}],
+      "assignee": ["Luminar Technologies Inc."]
+    },
+    {
+      "publication_number": "US-9321098-B2",
+      "country_code": "US",
+      "publication_date": 20160426,
+      "title_localized": [{"text": "Programmable RNA therapeutics using circular RNA templates", "language": "en"}],
+      "abstract_localized": [{"text": "Engineered circular RNA molecules serving as durable templates for protein expression in vivo, resistant to exonuclease degradation and capable of sustained therapeutic protein production from a single administration.", "language": "en"}],
+      "claims_localized": [{"text": "A pharmaceutical composition comprising a circular RNA molecule encoding a therapeutic protein, wherein the circular RNA resists exonuclease degradation and produces the protein for at least 72 hours in mammalian cells.", "language": "en"}],
+      "ipc": [{"code": "C12N15/113"}],
+      "assignee": ["Orna Therapeutics"]
+    },
+    {
+      "publication_number": "US-9210987-B2",
+      "country_code": "US",
+      "publication_date": 20151208,
+      "title_localized": [{"text": "Graphene-based biosensor for real-time biomarker detection", "language": "en"}],
+      "abstract_localized": [{"text": "Field-effect transistor biosensors utilizing graphene channels functionalized with capture probes, enabling label-free detection of protein biomarkers in blood at femtomolar sensitivity for point-of-care diagnostics.", "language": "en"}],
+      "claims_localized": [{"text": "A biosensor comprising: a graphene channel on a substrate; source and drain electrodes contacting the channel; and capture molecules immobilized on the graphene surface configured to bind a target biomarker.", "language": "en"}],
+      "ipc": [{"code": "G01N33/543"}],
+      "assignee": ["Graphenea SA"]
+    },
+    {
+      "publication_number": "US-9109876-B2",
+      "country_code": "US",
+      "publication_date": 20150818,
+      "title_localized": [{"text": "Additive manufacturing of titanium alloy orthopedic implants", "language": "en"}],
+      "abstract_localized": [{"text": "Selective laser melting process parameters for producing porous titanium alloy orthopedic implants with controlled trabecular structure promoting osseointegration and mechanical compatibility with human bone.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: providing a powder bed of Ti-6Al-4V alloy; selectively melting powder layers according to a digital model to form a porous implant structure; and post-processing the implant to achieve defined surface roughness.", "language": "en"}],
+      "ipc": [{"code": "B22F10/28"}],
+      "assignee": ["Stryker Corp."]
+    },
+    {
+      "publication_number": "US-10987654-B2",
+      "country_code": "US",
+      "publication_date": 20210427,
+      "title_localized": [{"text": "Protac degraders targeting undruggable transcription factors", "language": "en"}],
+      "abstract_localized": [{"text": "Proteolysis-targeting chimeric molecules linking an E3 ligase recruiter to a ligand for an oncogenic transcription factor, inducing ubiquitin-mediated degradation of previously undruggable nuclear protein targets.", "language": "en"}],
+      "claims_localized": [{"text": "A PROTAC molecule comprising: a ligand binding a target protein; a linker; and an E3 ubiquitin ligase recruiting moiety, wherein the molecule induces degradation of the target protein in cells.", "language": "en"}],
+      "ipc": [{"code": "C07K14/47"}],
+      "assignee": ["Arvinas Inc."]
+    },
+    {
+      "publication_number": "US-10876543-B2",
+      "country_code": "US",
+      "publication_date": 20201229,
+      "title_localized": [{"text": "Cryo-electron microscopy sample preparation for membrane proteins", "language": "en"}],
+      "abstract_localized": [{"text": "Methods for vitrifying membrane protein samples in lipid nanodiscs for single-particle cryo-EM analysis, enabling near-atomic resolution structural determination of G-protein coupled receptors and ion channels.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: reconstituting a membrane protein in a lipid nanodisc; applying the sample to a cryo-EM grid; vitrifying the sample; and collecting electron micrographs for 3D reconstruction.", "language": "en"}],
+      "ipc": [{"code": "G01N23/04"}],
+      "assignee": ["Thermo Fisher Scientific"]
+    },
+    {
+      "publication_number": "US-10765430-B2",
+      "country_code": "US",
+      "publication_date": 20200901,
+      "title_localized": [{"text": "Edge AI accelerator with in-memory computing architecture", "language": "en"}],
+      "abstract_localized": [{"text": "Neural network accelerator chip performing multiply-accumulate operations directly within SRAM memory arrays to minimize data movement, achieving sub-watt inference performance for edge deployment of convolutional and transformer models.", "language": "en"}],
+      "claims_localized": [{"text": "An integrated circuit comprising: an array of memory cells configured to store neural network weights; and compute logic integrated within the memory array performing in-situ multiply-accumulate operations.", "language": "en"}],
+      "ipc": [{"code": "G06F17/16"}],
+      "assignee": ["Mythic Inc."]
+    },
+    {
+      "publication_number": "US-10654309-B2",
+      "country_code": "US",
+      "publication_date": 20200512,
+      "title_localized": [{"text": "Hydrogen electrolyzer with proton exchange membrane stack", "language": "en"}],
+      "abstract_localized": [{"text": "Proton exchange membrane electrolysis cell stacks utilizing iridium oxide anode catalysts and optimized flow fields achieving high current density green hydrogen production from renewable electricity sources.", "language": "en"}],
+      "claims_localized": [{"text": "An electrolyzer comprising: a proton exchange membrane; an iridium oxide anode catalyst layer; a cathode configured to evolve hydrogen; and flow channels distributing water to the anode.", "language": "en"}],
+      "ipc": [{"code": "C25B9/00"}],
+      "assignee": ["Nel ASA"]
+    },
+    {
+      "publication_number": "US-10543298-B2",
+      "country_code": "US",
+      "publication_date": 20200114,
+      "title_localized": [{"text": "Spatial transcriptomics with in situ sequencing", "language": "en"}],
+      "abstract_localized": [{"text": "Methods for capturing RNA from tissue sections while preserving spatial coordinates, followed by in situ sequencing or barcoded array capture to map gene expression at cellular resolution within intact tissue architecture.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: sectioning a tissue sample; capturing RNA molecules at defined spatial positions on a capture array; and determining gene expression profiles while retaining positional information.", "language": "en"}],
+      "ipc": [{"code": "C12Q1/6869"}],
+      "assignee": ["10x Genomics Inc."]
+    },
+    {
+      "publication_number": "US-10432187-B2",
+      "country_code": "US",
+      "publication_date": 20191001,
+      "title_localized": [{"text": "Organ-on-a-chip microphysiological system for drug screening", "language": "en"}],
+      "abstract_localized": [{"text": "Microfluidic devices co-culturing multiple human organ cell types on integrated chips with physiological fluid flow, recapitulating organ-level drug metabolism and toxicity responses for preclinical screening.", "language": "en"}],
+      "claims_localized": [{"text": "A microphysiological system comprising: a first organ chip containing hepatocytes; a second organ chip containing cardiomyocytes; and microfluidic channels connecting the chips to simulate systemic circulation.", "language": "en"}],
+      "ipc": [{"code": "C12M3/06"}],
+      "assignee": ["Emulate Inc."]
+    },
+    {
+      "publication_number": "US-10321076-B2",
+      "country_code": "US",
+      "publication_date": 20190611,
+      "title_localized": [{"text": "Reinforcement learning for robotic manipulation in unstructured environments", "language": "en"}],
+      "abstract_localized": [{"text": "Deep reinforcement learning policies trained in simulation with domain randomization and deployed on robotic manipulators for grasping and sorting objects in unstructured warehouse environments without task-specific programming.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: training a policy network in a simulated environment with randomized object properties; transferring the policy to a physical robot; and executing grasping actions based on visual input.", "language": "en"}],
+      "ipc": [{"code": "G06N3/006"}],
+      "assignee": ["Covariant.ai"]
+    },
+    {
+      "publication_number": "US-10210965-B2",
+      "country_code": "US",
+      "publication_date": 20190212,
+      "title_localized": [{"text": "Peptide macrocycle library for intracellular target engagement", "language": "en"}],
+      "abstract_localized": [{"text": "Combinatorial libraries of stapled peptide macrocycles designed to cross cell membranes and bind intracellular protein-protein interaction surfaces previously considered undruggable by conventional small molecules.", "language": "en"}],
+      "claims_localized": [{"text": "A stapled peptide macrocycle comprising: a helical peptide sequence; and hydrocarbon staples crosslinking the helix, wherein the macrocycle binds an intracellular protein target with micromolar affinity.", "language": "en"}],
+      "ipc": [{"code": "C07K14/00"}],
+      "assignee": ["Aileron Therapeutics"]
+    },
+    {
+      "publication_number": "US-10109854-B2",
+      "country_code": "US",
+      "publication_date": 20181023,
+      "title_localized": [{"text": "Superconducting qubit with tunable coupler for quantum computing", "language": "en"}],
+      "abstract_localized": [{"text": "Transmon qubit architectures incorporating tunable couplers that can be switched off to suppress parasitic interactions between qubits, enabling scalable gate fidelities above 99.5 percent in multi-qubit processors.", "language": "en"}],
+      "claims_localized": [{"text": "A quantum processor comprising: a plurality of transmon qubits; and tunable couplers connecting adjacent qubits, each coupler configurable to an off state suppressing inter-qubit coupling.", "language": "en"}],
+      "ipc": [{"code": "H01L39/24"}],
+      "assignee": ["IBM Corp."]
+    },
+    {
+      "publication_number": "US-10098743-B2",
+      "country_code": "US",
+      "publication_date": 20181016,
+      "title_localized": [{"text": "Direct air capture of CO2 using sorbent contactor modules", "language": "en"}],
+      "abstract_localized": [{"text": "Modular contactor systems using amine-functionalized sorbent materials cycled between CO2 capture from ambient air and regeneration via low-temperature vacuum desorption for carbon removal at megaton scale.", "language": "en"}],
+      "claims_localized": [{"text": "A direct air capture system comprising: a sorbent contactor exposed to ambient air; a regeneration module desorbing captured CO2; and a cycling mechanism alternating between capture and regeneration phases.", "language": "en"}],
+      "ipc": [{"code": "B01D53/04"}],
+      "assignee": ["Climeworks AG"]
+    },
+    {
+      "publication_number": "US-9987643-B2",
+      "country_code": "US",
+      "publication_date": 20180522,
+      "title_localized": [{"text": "Optogenetic control of neural circuits for therapeutic neuromodulation", "language": "en"}],
+      "abstract_localized": [{"text": "Adeno-associated viral vectors delivering opsin genes to specific neural populations enabling light-mediated activation or silencing of deep brain circuits for treatment of Parkinson disease and chronic pain.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: delivering an AAV vector encoding an opsin to a target neural population; implanting an optical fiber adjacent to the population; and modulating neural activity by delivering light pulses.", "language": "en"}],
+      "ipc": [{"code": "A61N5/06"}],
+      "assignee": ["Circuit Therapeutics"]
+    },
+    {
+      "publication_number": "US-9876532-B2",
+      "country_code": "US",
+      "publication_date": 20180116,
+      "title_localized": [{"text": "Enzymatic DNA synthesis using terminal deoxynucleotidyl transferase", "language": "en"}],
+      "abstract_localized": [{"text": "Template-independent enzymatic DNA synthesis methods using engineered terminal deoxynucleotidyl transferase with reversible terminator nucleotides for de novo synthesis of custom oligonucleotides and genes.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: contacting a primer with engineered TdT enzyme; incorporating a reversible terminator nucleotide; and iteratively extending the primer to synthesize a defined DNA sequence.", "language": "en"}],
+      "ipc": [{"code": "C12P19/34"}],
+      "assignee": ["Molecular Assemblies Inc."]
+    },
+    {
+      "publication_number": "US-9765421-B2",
+      "country_code": "US",
+      "publication_date": 20170912,
+      "title_localized": [{"text": "Compact fusion reactor with high-temperature superconducting magnets", "language": "en"}],
+      "abstract_localized": [{"text": "Spherical tokamak fusion reactor design utilizing REBCO high-temperature superconducting magnets to achieve magnetic fields above 12 Tesla in a compact vessel, targeting net energy gain from deuterium-tritium plasma.", "language": "en"}],
+      "claims_localized": [{"text": "A fusion reactor comprising: a plasma confinement vessel; REBCO superconducting magnet coils generating a confinement field exceeding 10 Tesla; and heating systems raising plasma temperature above 100 million Kelvin.", "language": "en"}],
+      "ipc": [{"code": "H05H1/02"}],
+      "assignee": ["Tokamak Energy Ltd."]
+    },
+    {
+      "publication_number": "US-9654310-B2",
+      "country_code": "US",
+      "publication_date": 20170509,
+      "title_localized": [{"text": "Cell-free protein synthesis in microfluidic droplets", "language": "en"}],
+      "abstract_localized": [{"text": "High-throughput cell-free protein expression performed in picoliter droplets with individually addressable DNA templates, enabling rapid screening of protein variants and enzyme engineering campaigns.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: encapsulating cell-free expression reagents and a DNA template in microfluidic droplets; incubating droplets to produce protein; and assaying protein activity within individual droplets.", "language": "en"}],
+      "ipc": [{"code": "C12P21/02"}],
+      "assignee": ["Ginkgo Bioworks"]
+    },
+    {
+      "publication_number": "US-9543209-B2",
+      "country_code": "US",
+      "publication_date": 20170110,
+      "title_localized": [{"text": "Non-invasive glucose monitoring using mid-infrared spectroscopy", "language": "en"}],
+      "abstract_localized": [{"text": "Wearable sensor employing quantum cascade laser and photodetector array to measure glucose concentration in interstitial fluid through skin using mid-infrared absorption spectroscopy without blood sampling.", "language": "en"}],
+      "claims_localized": [{"text": "A glucose monitoring device comprising: a mid-infrared light source; a detector measuring absorption through skin tissue; and a processor converting absorption data to glucose concentration estimates.", "language": "en"}],
+      "ipc": [{"code": "A61B5/1455"}],
+      "assignee": ["Know Labs Inc."]
+    },
+    {
+      "publication_number": "US-9432108-B2",
+      "country_code": "US",
+      "publication_date": 20160823,
+      "title_localized": [{"text": "Two-dimensional material transistor for beyond-silicon computing", "language": "en"}],
+      "abstract_localized": [{"text": "Field-effect transistors fabricated from monolayer molybdenum disulfide on high-k dielectric substrates demonstrating sub-10 nm channel lengths with reduced short-channel effects for next-generation logic devices.", "language": "en"}],
+      "claims_localized": [{"text": "A transistor comprising: a monolayer transition metal dichalcogenide channel; high-k gate dielectric; and source/drain contacts, wherein the channel length is less than 10 nanometers.", "language": "en"}],
+      "ipc": [{"code": "H01L29/66"}],
+      "assignee": ["TSMC Ltd."]
+    },
+    {
+      "publication_number": "US-9321097-B2",
+      "country_code": "US",
+      "publication_date": 20160419,
+      "title_localized": [{"text": "Synthetic biology circuit for programmable biosensor output", "language": "en"}],
+      "abstract_localized": [{"text": "Genetic circuits in engineered bacteria converting detection of environmental contaminants into quantifiable optical or electrochemical output signals, with modular promoter-reporter architectures for field-deployable biosensing.", "language": "en"}],
+      "claims_localized": [{"text": "An engineered microorganism comprising: a sensor promoter activated by a target analyte; and a reporter gene under control of the promoter producing a detectable output signal upon analyte binding.", "language": "en"}],
+      "ipc": [{"code": "C12N15/63"}],
+      "assignee": ["Ginkgo Bioworks"]
+    },
+    {
+      "publication_number": "US-9210986-B2",
+      "country_code": "US",
+      "publication_date": 20151201,
+      "title_localized": [{"text": "High-entropy alloy coatings for turbine blade thermal protection", "language": "en"}],
+      "abstract_localized": [{"text": "Multi-principal element high-entropy alloy thermal barrier coatings applied to gas turbine blades via plasma spray, providing superior oxidation resistance and thermal cycling durability at operating temperatures above 1200 degrees Celsius.", "language": "en"}],
+      "claims_localized": [{"text": "A turbine component comprising: a superalloy substrate; and a high-entropy alloy coating containing at least five principal elements in near-equiatomic proportions deposited on a surface exposed to hot combustion gas.", "language": "en"}],
+      "ipc": [{"code": "C23C4/01"}],
+      "assignee": ["General Electric Co."]
+    },
+    {
+      "publication_number": "US-9109875-B2",
+      "country_code": "US",
+      "publication_date": 20150811,
+      "title_localized": [{"text": "Large language model inference with speculative decoding", "language": "en"}],
+      "abstract_localized": [{"text": "Accelerated text generation using a small draft model to propose token sequences verified in parallel by a large target model, reducing latency of autoregressive language model inference without quality degradation.", "language": "en"}],
+      "claims_localized": [{"text": "A method comprising: generating candidate token sequences with a draft language model; verifying candidates in parallel with a target language model; and accepting verified tokens for output generation.", "language": "en"}],
+      "ipc": [{"code": "G06F40/30"}],
+      "assignee": ["Google DeepMind"]
+    },
+    {
+      "publication_number": "US-10987655-B2",
+      "country_code": "US",
+      "publication_date": 20210427,
+      "title_localized": [{"text": "In vivo gene delivery using engineered AAV capsid variants", "language": "en"}],
+      "abstract_localized": [{"text": "Adeno-associated viral vectors with computationally designed capsid variants exhibiting enhanced tissue tropism and reduced seroprevalence for systemic delivery of therapeutic transgenes to liver, muscle, and central nervous system.", "language": "en"}],
+      "claims_localized": [{"text": "An AAV vector comprising: a transgene encoding a therapeutic protein; and an engineered capsid protein comprising amino acid substitutions conferring altered tissue tropism compared to AAV9.", "language": "en"}],
+      "ipc": [{"code": "C12N15/86"}],
+      "assignee": ["Dyno Therapeutics"]
+    }
+  ]
+}

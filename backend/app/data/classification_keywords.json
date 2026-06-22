@@ -1,0 +1,14 @@
+{
+  "A61K": ["pharmaceutical", "drug", "medicine", "therapeutic", "clinical", "dosage", "formulation", "patient", "treatment", "vaccine", "antibody", "inhibitor"],
+  "C12N": ["biotechnology", "genetic", "genome", "crispr", "enzyme", "protein", "cell culture", "dna", "rna", "microorganism", "fermentation", "gene editing", "viral vector"],
+  "H01L": ["semiconductor", "transistor", "chip", "silicon", "photovoltaic", "led", "wafer", "microelectronic", "integrated circuit", "gan", "quantum dot"],
+  "G06F": ["machine learning", "neural network", "algorithm", "computing", "software", "artificial intelligence", "deep learning", "data processing", "computer", "transformer", "llm"],
+  "C07D": ["organic compound", "synthesis", "molecule", "chemical structure", "heterocyclic", "pharmaceutical chemistry", "catalyst", "scaffold"],
+  "B01J": ["catalyst", "reactor", "chemical process", "separation", "purification", "hydrogenation", "oxidation", "membrane", "flow chemistry"],
+  "H01M": ["battery", "lithium", "electrolyte", "cathode", "anode", "energy storage", "solid state", "fuel cell"],
+  "G01N": ["sensor", "biosensor", "detection", "spectroscopy", "diagnostic", "assay", "measurement", "imaging"],
+  "H05H": ["fusion", "plasma", "tokamak", "superconducting magnet", "nuclear"],
+  "B29C": ["additive manufacturing", "3d printing", "polymer", "composite", "extrusion", "injection molding"],
+  "A61B": ["medical device", "surgical", "implant", "diagnostic imaging", "wearable", "patient monitoring"],
+  "C08G": ["polymer", "resin", "epoxy", "polyurethane", "biopolymer", "hydrogel"]
+}

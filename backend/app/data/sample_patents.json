@@ -1,0 +1,82 @@
+[
+  {
+    "patent_id": "US-2021-0012345",
+    "title": "CRISPR-based gene editing system for targeted therapeutic modification",
+    "abstract": "A method for editing genomic sequences using a guide RNA and Cas9 nuclease to achieve precise therapeutic modifications in mammalian cells with reduced off-target effects.",
+    "ipc": "C12N15/113",
+    "cpc": "C12N15/113",
+    "claims": "A method comprising: providing a guide RNA targeting a specific genomic locus; introducing a Cas9 nuclease; and modifying the target sequence to alter gene expression."
+  },
+  {
+    "patent_id": "US-2020-0098765",
+    "title": "Novel kinase inhibitor compounds for oncology treatment",
+    "abstract": "Pharmaceutical compositions containing substituted pyrimidine derivatives that selectively inhibit kinase activity for treatment of solid tumors and hematological malignancies.",
+    "ipc": "A61K31/519",
+    "cpc": "A61K31/519",
+    "claims": "A pharmaceutical composition comprising a compound of formula I and a pharmaceutically acceptable carrier, wherein the compound inhibits kinase activity at sub-micromolar concentrations."
+  },
+  {
+    "patent_id": "US-2019-0045678",
+    "title": "High-efficiency perovskite solar cell with stabilized interface",
+    "abstract": "A photovoltaic device incorporating a perovskite absorber layer with an engineered electron transport layer that improves power conversion efficiency and long-term stability under ambient conditions.",
+    "ipc": "H01L31/0224",
+    "cpc": "H01L31/0224",
+    "claims": "A solar cell comprising: a perovskite absorber layer; an electron transport layer comprising a metal oxide nanoparticle film; and a hole transport layer configured to minimize interfacial recombination."
+  },
+  {
+    "patent_id": "US-2022-0023456",
+    "title": "Transformer-based neural network for molecular property prediction",
+    "abstract": "A deep learning system using self-attention mechanisms to predict molecular binding affinity, toxicity, and synthesis feasibility from SMILES representations without hand-crafted descriptors.",
+    "ipc": "G06F18/24",
+    "cpc": "G06N3/08",
+    "claims": "A computer-implemented method comprising: encoding molecular structures as token sequences; processing the sequences through a transformer architecture; and outputting predicted molecular properties."
+  },
+  {
+    "patent_id": "US-2018-0078901",
+    "title": "Continuous flow catalytic reactor for green chemistry synthesis",
+    "abstract": "An apparatus and method for continuous flow chemical synthesis using immobilized heterogeneous catalysts to reduce waste and improve reaction yield in pharmaceutical intermediate production.",
+    "ipc": "B01J19/00",
+    "cpc": "B01J19/00",
+    "claims": "A reactor system comprising: a flow channel containing immobilized catalyst particles; a temperature control module; and a product separation unit integrated in a single continuous process line."
+  },
+  {
+    "patent_id": "US-2020-0034567",
+    "title": "Antibody-drug conjugate targeting HER2-positive cancers",
+    "abstract": "Conjugates linking cytotoxic payloads to monoclonal antibodies that bind HER2 receptors, enabling targeted delivery to breast and gastric cancer cells with improved therapeutic index.",
+    "ipc": "A61K47/68",
+    "cpc": "A61K47/68",
+    "claims": "An antibody-drug conjugate comprising: an anti-HER2 antibody; a cleavable linker; and a cytotoxic agent attached via the linker at a drug-to-antibody ratio of 2 to 8."
+  },
+  {
+    "patent_id": "US-2021-0089012",
+    "title": "Quantum dot display with enhanced color gamut",
+    "abstract": "A display device utilizing engineered quantum dots embedded in a polymer matrix to achieve wide color gamut and high luminance efficiency for next-generation visual displays.",
+    "ipc": "H01L33/50",
+    "cpc": "H01L33/50",
+    "claims": "A display comprising: a blue LED backlight; a quantum dot conversion layer with red and green emitting dots; and an optical filter configured to pass converted emission while blocking excitation light."
+  },
+  {
+    "patent_id": "US-2019-0067890",
+    "title": "Federated learning framework for privacy-preserving medical AI",
+    "abstract": "A distributed machine learning system enabling hospitals to collaboratively train diagnostic models without sharing raw patient data, using encrypted gradient aggregation and differential privacy.",
+    "ipc": "G06F21/62",
+    "cpc": "G06N20/00",
+    "claims": "A method comprising: training local models at multiple institutions on private data; aggregating model updates via secure multi-party computation; and distributing an updated global model without exposing raw records."
+  },
+  {
+    "patent_id": "US-2022-0056789",
+    "title": "Solid-state battery electrolyte with lithium ion conductivity",
+    "abstract": "A ceramic-polymer composite electrolyte achieving high lithium ion conductivity at room temperature for use in next-generation solid-state energy storage devices.",
+    "ipc": "H01M10/0562",
+    "cpc": "H01M10/0562",
+    "claims": "An electrolyte layer comprising: a lithium-conducting ceramic phase dispersed in a polymer matrix; wherein the composite exhibits ionic conductivity exceeding 1 mS/cm at 25 degrees Celsius."
+  },
+  {
+    "patent_id": "US-2020-0011223",
+    "title": "Microfluidic device for single-cell RNA sequencing",
+    "abstract": "A lab-on-chip platform that captures individual cells in microdroplets and performs reverse transcription and barcoding for high-throughput single-cell transcriptomic analysis.",
+    "ipc": "C12Q1/68",
+    "cpc": "C12Q1/68",
+    "claims": "A microfluidic device comprising: a droplet generation junction; cell capture chambers; and integrated reagent channels for barcoded reverse transcription of RNA from isolated single cells."
+  }
+]
