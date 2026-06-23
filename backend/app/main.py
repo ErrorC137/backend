@@ -90,3 +90,8 @@ async def analyze(file: UploadFile = File(...)):
         del content
 
     return result
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=API_PORT)
