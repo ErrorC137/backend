@@ -25,6 +25,8 @@ services:
         value: https://matdao-platform-v1-ms5jvg6it-scottgaming70-5109s-projects.vercel.app
       - key: REPORT_SIGNING_SECRET
         generateValue: true
+      - key: FORCE_REDEPLOY
+        value: "2024-06-23"
 
   # Node TRL Services (R2C Leaderboard, AI Auditor, Co-founder Match)
   - type: web
