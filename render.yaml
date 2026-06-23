@@ -35,7 +35,6 @@ services:
     healthCheckPath: /health
     envVars:
       - key: GEMINI_API_KEY
-        generateValue: true
         sync: false
       - key: ALLOWED_ORIGINS
         value: https://matdao-platform-v1-ms5jvg6it-scottgaming70-5109s-projects.vercel.app
