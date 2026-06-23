@@ -4,10 +4,10 @@
 services:
   # Python IP Engine (TRL + IP Valuation + Due Diligence)
   - type: web
-    name: matdao-ip-engine-v2
+    name: matdao-ip-engine
     runtime: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: python backend/app/main.py
+    buildCommand: pip install -r backend/requirements.txt && chmod +x backend/run.sh
+    startCommand: bash backend/run.sh
     plan: starter
     healthCheckPath: /health
     envVars:
