@@ -7,7 +7,7 @@ services:
     name: matdao-ip-engine
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: bash backend/start.sh
+    startCommand: python backend/start.py
     plan: starter
     healthCheckPath: /health
     envVars:
