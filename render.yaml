@@ -7,7 +7,7 @@ services:
     name: matdao-ip-engine
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash backend/start.sh
     plan: starter
     healthCheckPath: /health
     envVars:
