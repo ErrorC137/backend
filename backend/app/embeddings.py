@@ -330,16 +330,18 @@ def build_index(force: bool = False) -> dict[str, Any]:
         with open(meta_path, encoding="utf-8") as f:
             cached_meta = json.load(f)
         # Check if cached embeddings are compatible with current provider
-        if cached_meta.get("provider") == _current_provider.value and cached_meta.get("count") == len(_patents):
+        cached_provider = cached_meta.get("provider")
+        current_provider_value = _current_provider.value if _current_provider else None
+        if cached_provider == current_provider_value and cached_meta.get("count") == len(_patents):
             _embedding_matrix = np.load(emb_path)
             _ready = True
-            logger.info("Loaded cached patent index: %d patents from %s", len(_patents), cached_meta.get("provider"))
+            logger.info("Loaded cached patent index: %d patents from %s", len(_patents), cached_provider)
             return {
                 "status": "loaded_cache",
                 "patent_count": len(_patents),
                 "embedding_dimensions": int(_embedding_matrix.shape[1]),
                 "model": cached_meta.get("model"),
-                "provider": cached_meta.get("provider"),
+                "provider": cached_provider,
             }
 
     texts = [f"{p['title']}. {p['abstract']}" for p in _patents]
