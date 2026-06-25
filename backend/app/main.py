@@ -1,5 +1,8 @@
 import logging
 import os
+import time
+from collections import defaultdict
+from threading import Lock
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -14,6 +17,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 API_PORT = int(os.environ.get("PORT", os.environ.get("API_PORT", "8765")))
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
+
+# Simple in-memory rate limiter
+_rate_limit_store = defaultdict(list)
+_rate_limit_lock = Lock()
+
+
+def _check_rate_limit(client_ip: str) -> bool:
+    """Check if client has exceeded rate limit."""
+    current_time = time.time()
+    
+    with _rate_limit_lock:
+        # Clean old requests outside the window
+        _rate_limit_store[client_ip] = [
+            req_time for req_time in _rate_limit_store[client_ip]
+            if current_time - req_time < RATE_LIMIT_WINDOW
+        ]
+        
+        # Check if under limit
+        if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
+            logger.warning(f"Rate limit exceeded for {client_ip}: {len(_rate_limit_store[client_ip])} requests in {RATE_LIMIT_WINDOW}s")
+            return False
+        
+        # Add current request
+        _rate_limit_store[client_ip].append(current_time)
+        return True
 
 
 def _cors_origins() -> list[str]:
@@ -59,7 +89,14 @@ async def health():
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), client_ip: str = "0.0.0.0"):
+    # Check rate limit
+    if not _check_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Rate limit exceeded: maximum {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW} seconds"
+        )
+    
     try:
         ensure_index()
     except Exception as exc:

@@ -1,10 +1,13 @@
-"""OpenAI text-embedding-3-small embedding engine with cached vector index."""
+"""Multi-provider embedding engine with cached vector index.
+Supports Cohere, HuggingFace, and OpenAI with automatic fallback."""
 
 from __future__ import annotations
 
 import json
 import logging
 import os
+import time
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -17,14 +20,39 @@ logger = logging.getLogger(__name__)
 
 _DATA_DIR = Path(__file__).parent / "data"
 _CACHE_DIR = _DATA_DIR / "vector_cache"
-_MODEL_NAME = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+
+# Provider configuration
+class EmbeddingProvider(Enum):
+    COHERE = "cohere"
+    HUGGINGFACE = "huggingface"
+    OPENAI = "openai"
+
+# Environment variables
+_COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+_HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 _OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Model configurations
+_COHERE_MODEL = os.getenv("COHERE_EMBEDDING_MODEL", "embed-english-v3.0")
+_HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+_OPENAI_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+
+# Provider priority order (will try in this order)
+_PROVIDER_PRIORITY = os.getenv("EMBEDDING_PROVIDER_PRIORITY", "cohere,huggingface,openai").split(",")
+
+# Rate limiting configuration
 _BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "50"))
-_EMBEDDING_DIM = 1536
+_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "5"))
+_RETRY_DELAY = float(os.getenv("OPENAI_RETRY_DELAY", "1.0"))
+
+# Embedding dimensions (will be set based on provider)
+_EMBEDDING_DIM = 1536  # Default, will be adjusted per provider
 
 _patents: list[dict[str, Any]] = []
 _embedding_matrix: np.ndarray | None = None
 _ready = False
+_request_cache: dict[str, np.ndarray] = {}
+_current_provider: EmbeddingProvider | None = None
 
 
 def _normalize(vectors: np.ndarray) -> np.ndarray:
@@ -33,9 +61,151 @@ def _normalize(vectors: np.ndarray) -> np.ndarray:
     return vectors / norms
 
 
+def _call_cohere_embeddings(texts: list[str]) -> np.ndarray:
+    """Call Cohere API for embeddings."""
+    if not _COHERE_API_KEY:
+        raise RuntimeError("COHERE_API_KEY environment variable is required for Cohere embeddings")
+
+    cleaned = [(t[:4096] if t and t.strip() else " ") for t in texts]
+    all_vectors: list[list[float]] = []
+
+    with httpx.Client(timeout=120.0) as client:
+        for i in range(0, len(cleaned), _BATCH_SIZE):
+            batch = cleaned[i : i + _BATCH_SIZE]
+            
+            # Check cache
+            batch_key = f"cohere_|".join(batch[:3])
+            if batch_key in _request_cache:
+                logger.debug("Using cached Cohere embedding for batch")
+                all_vectors.extend(_request_cache[batch_key].tolist())
+                continue
+            
+            # Retry logic
+            for attempt in range(_MAX_RETRIES):
+                try:
+                    response = client.post(
+                        "https://api.cohere.ai/v1/embed",
+                        headers={
+                            "Authorization": f"Bearer {_COHERE_API_KEY}",
+                            "Content-Type": "application/json",
+                            "X-Client-Name": "MatDAO",
+                        },
+                        json={
+                            "model": _COHERE_MODEL,
+                            "texts": batch,
+                            "input_type": "search_document",
+                            "embedding_types": ["float"]
+                        },
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    batch_vectors = [item["float"] for item in data["embeddings"]]
+                    
+                    _request_cache[batch_key] = np.array(batch_vectors, dtype=np.float32)
+                    all_vectors.extend(batch_vectors)
+                    break
+                    
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429:
+                        if attempt < _MAX_RETRIES - 1:
+                            delay = _RETRY_DELAY * (2 ** attempt)
+                            logger.warning(f"Cohere rate limited (429), retrying in {delay}s (attempt {attempt + 1}/{_MAX_RETRIES})")
+                            time.sleep(delay)
+                        else:
+                            logger.error(f"Max retries exceeded for Cohere API after rate limit")
+                            raise RuntimeError(f"Cohere API rate limit exceeded after {_MAX_RETRIES} retries")
+                    else:
+                        raise
+                except Exception as e:
+                    logger.error(f"Unexpected error calling Cohere API: {e}")
+                    raise
+
+    matrix = np.asarray(all_vectors, dtype=np.float32)
+    return _normalize(matrix)
+
+
+def _call_huggingface_embeddings(texts: list[str]) -> np.ndarray:
+    """Call HuggingFace Inference API for embeddings."""
+    if not _HUGGINGFACE_API_KEY:
+        # Try free tier without API key
+        logger.warning("No HUGGINGFACE_API_KEY set, using free tier (limited)")
+        api_url = f"https://api-inference.huggingface.co/models/{_HUGGINGFACE_MODEL}"
+        headers = {"Content-Type": "application/json"}
+    else:
+        api_url = f"https://api-inference.huggingface.co/models/{_HUGGINGFACE_MODEL}"
+        headers = {
+            "Authorization": f"Bearer {_HUGGINGFACE_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+    cleaned = [(t[:512] if t and t.strip() else " ") for t in texts]  # HuggingFace has shorter limits
+    all_vectors: list[list[float]] = []
+
+    with httpx.Client(timeout=120.0) as client:
+        for i in range(0, len(cleaned), _BATCH_SIZE):
+            batch = cleaned[i : i + _BATCH_SIZE]
+            
+            # Check cache
+            batch_key = f"hf_|".join(batch[:3])
+            if batch_key in _request_cache:
+                logger.debug("Using cached HuggingFace embedding for batch")
+                all_vectors.extend(_request_cache[batch_key].tolist())
+                continue
+            
+            # Retry logic
+            for attempt in range(_MAX_RETRIES):
+                try:
+                    response = client.post(
+                        api_url,
+                        headers=headers,
+                        json={"inputs": batch, "options": {"wait_for_model": True}},
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    # Handle different response formats
+                    if isinstance(data, list):
+                        batch_vectors = data
+                    elif isinstance(data, dict) and "embeddings" in data:
+                        batch_vectors = data["embeddings"]
+                    else:
+                        raise ValueError(f"Unexpected HuggingFace response format: {type(data)}")
+                    
+                    _request_cache[batch_key] = np.array(batch_vectors, dtype=np.float32)
+                    all_vectors.extend(batch_vectors)
+                    break
+                    
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429:
+                        if attempt < _MAX_RETRIES - 1:
+                            delay = _RETRY_DELAY * (2 ** attempt)
+                            logger.warning(f"HuggingFace rate limited (429), retrying in {delay}s (attempt {attempt + 1}/{_MAX_RETRIES})")
+                            time.sleep(delay)
+                        else:
+                            logger.error(f"Max retries exceeded for HuggingFace API after rate limit")
+                            raise RuntimeError(f"HuggingFace API rate limit exceeded after {_MAX_RETRIES} retries")
+                    elif e.response.status_code == 503:
+                        # Model loading, wait and retry
+                        if attempt < _MAX_RETRIES - 1:
+                            delay = 5 + (attempt * 5)
+                            logger.warning(f"HuggingFace model loading (503), retrying in {delay}s (attempt {attempt + 1}/{_MAX_RETRIES})")
+                            time.sleep(delay)
+                        else:
+                            raise RuntimeError(f"HuggingFace model failed to load after {_MAX_RETRIES} retries")
+                    else:
+                        raise
+                except Exception as e:
+                    logger.error(f"Unexpected error calling HuggingFace API: {e}")
+                    raise
+
+    matrix = np.asarray(all_vectors, dtype=np.float32)
+    return _normalize(matrix)
+
+
 def _call_openai_embeddings(texts: list[str]) -> np.ndarray:
+    """Call OpenAI API for embeddings."""
     if not _OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY environment variable is required for embeddings")
+        raise RuntimeError("OPENAI_API_KEY environment variable is required for OpenAI embeddings")
 
     cleaned = [(t[:8000] if t and t.strip() else " ") for t in texts]
     all_vectors: list[list[float]] = []
@@ -43,27 +213,101 @@ def _call_openai_embeddings(texts: list[str]) -> np.ndarray:
     with httpx.Client(timeout=120.0) as client:
         for i in range(0, len(cleaned), _BATCH_SIZE):
             batch = cleaned[i : i + _BATCH_SIZE]
-            response = client.post(
-                "https://api.openai.com/v1/embeddings",
-                headers={
-                    "Authorization": f"Bearer {_OPENAI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={"model": _MODEL_NAME, "input": batch},
-            )
-            response.raise_for_status()
-            data = response.json()
-            ordered = sorted(data["data"], key=lambda item: item["index"])
-            all_vectors.extend(item["embedding"] for item in ordered)
+            
+            # Check cache
+            batch_key = f"openai_|".join(batch[:3])
+            if batch_key in _request_cache:
+                logger.debug("Using cached OpenAI embedding for batch")
+                all_vectors.extend(_request_cache[batch_key].tolist())
+                continue
+            
+            # Retry logic
+            for attempt in range(_MAX_RETRIES):
+                try:
+                    response = client.post(
+                        "https://api.openai.com/v1/embeddings",
+                        headers={
+                            "Authorization": f"Bearer {_OPENAI_API_KEY}",
+                            "Content-Type": "application/json",
+                        },
+                        json={"model": _OPENAI_MODEL, "input": batch},
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    ordered = sorted(data["data"], key=lambda item: item["index"])
+                    batch_vectors = [item["embedding"] for item in ordered]
+                    
+                    _request_cache[batch_key] = np.array(batch_vectors, dtype=np.float32)
+                    all_vectors.extend(batch_vectors)
+                    break
+                    
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429:
+                        if attempt < _MAX_RETRIES - 1:
+                            delay = _RETRY_DELAY * (2 ** attempt)
+                            logger.warning(f"OpenAI rate limited (429), retrying in {delay}s (attempt {attempt + 1}/{_MAX_RETRIES})")
+                            time.sleep(delay)
+                        else:
+                            logger.error(f"Max retries exceeded for OpenAI API after rate limit")
+                            raise RuntimeError(f"OpenAI API rate limit exceeded after {_MAX_RETRIES} retries")
+                    else:
+                        raise
+                except Exception as e:
+                    logger.error(f"Unexpected error calling OpenAI API: {e}")
+                    raise
 
     matrix = np.asarray(all_vectors, dtype=np.float32)
     return _normalize(matrix)
 
 
+def _get_provider_function(provider: EmbeddingProvider):
+    """Get the embedding function for a specific provider."""
+    if provider == EmbeddingProvider.COHERE:
+        return _call_cohere_embeddings
+    elif provider == EmbeddingProvider.HUGGINGFACE:
+        return _call_huggingface_embeddings
+    elif provider == EmbeddingProvider.OPENAI:
+        return _call_openai_embeddings
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+
 def encode_texts(texts: list[str]) -> np.ndarray:
+    """Encode texts using available providers with automatic fallback."""
     if not texts:
         return np.zeros((0, _EMBEDDING_DIM), dtype=np.float32)
-    return _call_openai_embeddings(texts)
+    
+    global _current_provider
+    
+    # Try providers in priority order
+    for provider_name in _PROVIDER_PRIORITY:
+        try:
+            provider = EmbeddingProvider(provider_name.strip())
+            
+            # Check if provider has required credentials
+            if provider == EmbeddingProvider.COHERE and not _COHERE_API_KEY:
+                logger.debug(f"Skipping Cohere: no API key configured")
+                continue
+            if provider == EmbeddingProvider.OPENAI and not _OPENAI_API_KEY:
+                logger.debug(f"Skipping OpenAI: no API key configured")
+                continue
+            # HuggingFace works without API key (free tier)
+            
+            logger.info(f"Attempting to use {provider.value} for embeddings")
+            embed_func = _get_provider_function(provider)
+            result = embed_func(texts)
+            
+            # Update current provider on success
+            _current_provider = provider
+            logger.info(f"Successfully using {provider.value} for embeddings")
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Failed to use {provider_name}: {e}")
+            continue
+    
+    # All providers failed
+    raise RuntimeError("All embedding providers failed. Please check API keys and rate limits.")
 
 
 def _cache_paths() -> tuple[Path, Path]:
@@ -85,26 +329,31 @@ def build_index(force: bool = False) -> dict[str, Any]:
     if emb_path.exists() and meta_path.exists():
         with open(meta_path, encoding="utf-8") as f:
             cached_meta = json.load(f)
-        if cached_meta.get("model") == _MODEL_NAME and cached_meta.get("count") == len(_patents):
+        # Check if cached embeddings are compatible with current provider
+        if cached_meta.get("provider") == _current_provider.value and cached_meta.get("count") == len(_patents):
             _embedding_matrix = np.load(emb_path)
             _ready = True
-            logger.info("Loaded cached patent index: %d patents", len(_patents))
+            logger.info("Loaded cached patent index: %d patents from %s", len(_patents), cached_meta.get("provider"))
             return {
                 "status": "loaded_cache",
                 "patent_count": len(_patents),
                 "embedding_dimensions": int(_embedding_matrix.shape[1]),
-                "model": _MODEL_NAME,
+                "model": cached_meta.get("model"),
+                "provider": cached_meta.get("provider"),
             }
 
     texts = [f"{p['title']}. {p['abstract']}" for p in _patents]
-    logger.info("Encoding %d patents via OpenAI %s...", len(texts), _MODEL_NAME)
+    logger.info("Encoding %d patents via %s...", len(texts), _current_provider.value if _current_provider else "available provider")
     _embedding_matrix = encode_texts(texts)
     np.save(emb_path, _embedding_matrix)
 
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(
             {
-                "model": _MODEL_NAME,
+                "provider": _current_provider.value if _current_provider else "unknown",
+                "model": _COHERE_MODEL if _current_provider == EmbeddingProvider.COHERE else 
+                        _HUGGINGFACE_MODEL if _current_provider == EmbeddingProvider.HUGGINGFACE else 
+                        _OPENAI_MODEL,
                 "count": len(_patents),
                 "embedding_dimensions": int(_embedding_matrix.shape[1]),
             },
@@ -112,12 +361,15 @@ def build_index(force: bool = False) -> dict[str, Any]:
         )
 
     _ready = True
-    logger.info("Built patent index: %d x %d", *_embedding_matrix.shape)
+    logger.info("Built patent index: %d x %d using %s", *_embedding_matrix.shape, _current_provider.value if _current_provider else "unknown")
     return {
         "status": "built",
         "patent_count": len(_patents),
         "embedding_dimensions": int(_embedding_matrix.shape[1]),
-        "model": _MODEL_NAME,
+        "model": _COHERE_MODEL if _current_provider == EmbeddingProvider.COHERE else 
+                _HUGGINGFACE_MODEL if _current_provider == EmbeddingProvider.HUGGINGFACE else 
+                _OPENAI_MODEL,
+        "provider": _current_provider.value if _current_provider else "unknown",
     }
 
 
@@ -130,9 +382,12 @@ def index_status() -> dict[str, Any]:
     return {
         "ready": _ready,
         "patent_count": len(_patents),
-        "model": _MODEL_NAME,
+        "model": _COHERE_MODEL if _current_provider == EmbeddingProvider.COHERE else 
+                _HUGGINGFACE_MODEL if _current_provider == EmbeddingProvider.HUGGINGFACE else 
+                _OPENAI_MODEL,
         "embedding_dimensions": int(_embedding_matrix.shape[1]) if _embedding_matrix is not None else _EMBEDDING_DIM,
-        "provider": "openai",
+        "provider": _current_provider.value if _current_provider else "none",
+        "available_providers": [p for p in _PROVIDER_PRIORITY if p.strip()],
     }
 
 
