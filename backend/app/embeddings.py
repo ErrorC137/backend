@@ -32,6 +32,11 @@ _COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 _HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 _OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Debug logging for environment variables
+logger.info(f"COHERE_API_KEY set: {bool(_COHERE_API_KEY)}")
+logger.info(f"HUGGINGFACE_API_KEY set: {bool(_HUGGINGFACE_API_KEY)}")
+logger.info(f"OPENAI_API_KEY set: {bool(_OPENAI_API_KEY)}")
+
 # Model configurations
 _COHERE_MODEL = os.getenv("COHERE_EMBEDDING_MODEL", "embed-english-v3.0")
 _HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
