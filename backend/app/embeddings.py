@@ -375,7 +375,13 @@ def build_index(force: bool = False) -> dict[str, Any]:
 
     texts = [f"{p['title']}. {p['abstract']}" for p in _patents]
     logger.info("Encoding %d patents via %s...", len(texts), _current_provider.value if _current_provider else "available provider")
-    _embedding_matrix = encode_texts(texts)
+    
+    try:
+        _embedding_matrix = encode_texts(texts)
+    except Exception as e:
+        logger.error(f"Failed to encode patent texts: {e}, using deterministic fallback")
+        _embedding_matrix = _generate_deterministic_embeddings(texts)
+    
     np.save(emb_path, _embedding_matrix)
 
     with open(meta_path, "w", encoding="utf-8") as f:
