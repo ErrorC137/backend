@@ -34,8 +34,6 @@ services:
       # Patent data sources
       - key: SERPAPI_KEY
         sync: false
-      - key: LENS_API_KEY
-        sync: false
       # Rate limiting configuration
       - key: RATE_LIMIT_REQUESTS
         value: "10"
