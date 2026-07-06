@@ -227,8 +227,24 @@ def calculate_valuation(
         )
     )
 
+    # Calculate narrower valuation range based on confidence
+    confidence_interval = 0.10  # ±10% for high confidence
+    if max_sim > 0.5:
+        confidence_interval = 0.15  # ±15% for medium confidence (higher similarity = more uncertainty)
+    if expert_consultation_required:
+        confidence_interval = 0.20  # ±20% for low confidence
+    
+    valuation_range_low = round(v_target * (1 - confidence_interval), 2)
+    valuation_range_high = round(v_target * (1 + confidence_interval), 2)
+    
     return {
         "v_baseline_usd": v_baseline,
+        "valuation_range_usd": {
+            "low": valuation_range_low,
+            "mid": round(v_target, 2),
+            "high": valuation_range_high,
+            "confidence_interval": confidence_interval
+        },
         "s_originality": s_originality,
         "r_fto": r_fto_clamped,
         "v_target_usd": round(v_target, 2),

@@ -11,6 +11,7 @@ from app.originality import compute_originality
 from app.security import sign_report
 from app.trl import evaluate_trl
 from app.valuation import calculate_valuation
+from app.patent_data import patent_service
 
 # Import DeepSeek enhancements
 try:
@@ -25,7 +26,40 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
     analysis_text = f"{doc.abstract}\n{doc.methodology}\n{doc.claims_outcomes}"
 
     classification = classify_document(analysis_text)
+    
+    # Enhanced originality with real patent data
     originality = compute_originality(analysis_text)
+    
+    # Try to get real patent matches from external sources
+    try:
+        patent_analysis = await patent_service.get_comprehensive_patent_analysis(
+            query=doc.abstract[:200] if doc.abstract else analysis_text[:200],
+            text_content=analysis_text,
+            limit=10
+        )
+        
+        # If we got real patent data, enhance originality with it
+        if patent_analysis["total_matches"] > 0:
+            originality["external_patent_matches"] = patent_analysis
+            originality["max_cosine_similarity"] = max(
+                originality.get("max_cosine_similarity", 0),
+                patent_analysis["max_similarity"]
+            )
+            # Update top matches with real data
+            if patent_analysis["top_matches"]:
+                originality["top_matches"] = [
+                    {
+                        "patent_id": match.patent_id,
+                        "title": match.title,
+                        "ipc": classification.get("ipc_primary", "C01B"),
+                        "cosine_similarity": match.similarity_score
+                    }
+                    for match in patent_analysis["top_matches"]
+                ]
+    except Exception as e:
+        # Fall back to original originality calculation if patent service fails
+        pass
+    
     fto = await analyze_fto(doc.methodology, originality["top_matches"])
     valuation = calculate_valuation(
         classification["ipc_primary"],
