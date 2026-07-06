@@ -115,16 +115,45 @@ def _extract_sections(text: str) -> tuple[str, str, str, list[str], float]:
 def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     name = filename.lower()
     if name.endswith(".pdf"):
-        reader = PdfReader(io.BytesIO(content))
-        pages = [page.extract_text() or "" for page in reader.pages]
-        raw = "\n".join(pages)
+        try:
+            reader = PdfReader(io.BytesIO(content))
+            pages = []
+            for page in reader.pages:
+                try:
+                    text = page.extract_text()
+                    if text and len(text.strip()) > 10:
+                        # Filter out binary/corrupted text
+                        cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
+                        if len(cleaned.strip()) > 10:
+                            pages.append(cleaned)
+                except Exception as e:
+                    continue
+            
+            if not pages:
+                # Fallback: try to extract text from the entire document
+                try:
+                    raw = content.decode('utf-8', errors='ignore')
+                    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
+                except:
+                    raw = "Unable to extract text from PDF"
+            else:
+                raw = "\n".join(pages)
+        except Exception as e:
+            raw = f"PDF parsing error: {str(e)}"
     elif name.endswith(".docx"):
         doc = Document(io.BytesIO(content))
         raw = "\n".join(p.text for p in doc.paragraphs)
     else:
         raw = content.decode("utf-8", errors="replace")
 
+    # Clean the extracted text
     raw = _strip_metadata(raw)
+    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)  # Remove any remaining non-ASCII
+    
+    # Ensure we have meaningful content
+    if len(raw.strip()) < 50:
+        raw = "Document content could not be properly extracted. Please check the file format and try again."
+    
     doc_type = _infer_document_type(raw, filename)
     abstract, methodology, claims, sections_found, confidence = _extract_sections(raw)
 
