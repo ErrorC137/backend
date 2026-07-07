@@ -12,6 +12,7 @@ from app.security import sign_report
 from app.trl import evaluate_trl
 from app.valuation import calculate_valuation
 from app.patent_data import patent_service
+from app.nlp_analysis import nlp_analyzer
 
 # Import DeepSeek enhancements
 try:
@@ -77,6 +78,9 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
         title_hint=doc.abstract[:120] if doc.abstract else "",
     )
 
+    # Perform comprehensive NLP analysis
+    nlp_analysis = nlp_analyzer.comprehensive_analysis(analysis_text)
+    
     # Enhance with DeepSeek if available
     enhanced_valuation = valuation
     due_diligence_report = {}
@@ -118,11 +122,13 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
             "embedding_model": originality["embedding_model"],
             "patent_corpus_size": originality["patent_corpus_size"],
             "top_patent_matches": originality["top_matches"][:5],
+            "similarity_method": originality.get("external_patent_matches", {}).get("similarity_method", "unknown"),
         },
         "fto": fto,
         "valuation": enhanced_valuation,
         "trl_evaluation": trl_evaluation,
         "due_diligence_report": due_diligence_report,
+        "nlp_analysis": nlp_analysis,
         "document_stats": {
             "abstract_chars": len(doc.abstract),
             "methodology_chars": len(doc.methodology),

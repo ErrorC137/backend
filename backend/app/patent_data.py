@@ -6,6 +6,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,22 @@ class PatentDataService:
     def __init__(self):
         self.serpapi_key = os.getenv("SERPAPI_KEY")
         self.timeout = 30.0
+        self._embeddings_available = False
+        self._check_embeddings()
+    
+    def _check_embeddings(self):
+        """Check if embedding functionality is available."""
+        try:
+            from app.embeddings import encode_texts, index_status
+            status = index_status()
+            self._embeddings_available = status.get("ready", False)
+            if self._embeddings_available:
+                logger.info("Embedding-based patent similarity is available")
+            else:
+                logger.warning("Embedding index not ready, using fallback similarity")
+        except ImportError:
+            logger.warning("Embedding module not available, using fallback similarity")
+            self._embeddings_available = False
     
     async def search_patents_serpapi(
         self, 
@@ -148,11 +165,11 @@ class PatentDataService:
         
         all_matches = serpapi_matches + google_matches
         
-        # Calculate similarity scores (simplified - in production would use embeddings)
+        # Calculate similarity scores using embedding-based semantic search when available
         for match in all_matches:
             match.similarity_score = self._calculate_text_similarity(
                 text_content,
-                match.abstract
+                match.abstract + " " + match.title  # Use both abstract and title for better matching
             )
         
         # Sort by similarity
@@ -163,21 +180,50 @@ class PatentDataService:
             sources_used.append("SERPAPI")
         if google_matches:
             sources_used.append("Google Patents Scraper")
+        if self._embeddings_available:
+            sources_used.append("Embedding-based Semantic Search")
+        
+        similarity_method = "embedding-based" if self._embeddings_available else "word-overlap"
         
         return {
             "total_matches": len(all_matches),
             "top_matches": all_matches[:5],
             "max_similarity": max([m.similarity_score for m in all_matches]) if all_matches else 0.0,
             "avg_similarity": sum([m.similarity_score for m in all_matches]) / len(all_matches) if all_matches else 0.0,
-            "sources_used": sources_used
+            "sources_used": sources_used,
+            "similarity_method": similarity_method
         }
     
     def _calculate_text_similarity(self, text1: str, text2: str) -> float:
-        """Calculate simple text similarity (word overlap).
-        In production, this would use embedding similarity."""
+        """Calculate text similarity using embeddings if available, otherwise fallback to word overlap."""
         if not text1 or not text2:
             return 0.0
         
+        # Try embedding-based similarity first
+        if self._embeddings_available:
+            try:
+                from app.embeddings import encode_texts
+                import numpy as np
+                
+                # Generate embeddings for both texts
+                embeddings = encode_texts([text1, text2])
+                
+                # Calculate cosine similarity
+                vec1 = embeddings[0]
+                vec2 = embeddings[1]
+                
+                # Normalize vectors
+                norm1 = np.linalg.norm(vec1)
+                norm2 = np.linalg.norm(vec2)
+                
+                if norm1 > 0 and norm2 > 0:
+                    similarity = np.dot(vec1, vec2) / (norm1 * norm2)
+                    logger.debug(f"Embedding-based similarity: {similarity:.4f}")
+                    return float(similarity)
+            except Exception as e:
+                logger.warning(f"Embedding similarity calculation failed: {e}, falling back to word overlap")
+        
+        # Fallback to word overlap similarity
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
         
@@ -187,7 +233,9 @@ class PatentDataService:
         intersection = words1.intersection(words2)
         union = words1.union(words2)
         
-        return len(intersection) / len(union) if union else 0.0
+        similarity = len(intersection) / len(union) if union else 0.0
+        logger.debug(f"Word overlap similarity: {similarity:.4f}")
+        return similarity
 
 # Global instance
 patent_service = PatentDataService()
