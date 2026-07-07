@@ -116,28 +116,59 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     name = filename.lower()
     if name.endswith(".pdf"):
         try:
-            reader = PdfReader(io.BytesIO(content))
-            pages = []
-            for page in reader.pages:
-                try:
-                    text = page.extract_text()
-                    if text and len(text.strip()) > 10:
-                        # Filter out binary/corrupted text
-                        cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
-                        if len(cleaned.strip()) > 10:
-                            pages.append(cleaned)
-                except Exception as e:
-                    continue
+            import pdfplumber
             
-            if not pages:
-                # Fallback: try to extract text from the entire document
-                try:
-                    raw = content.decode('utf-8', errors='ignore')
-                    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
-                except:
-                    raw = "Unable to extract text from PDF"
-            else:
-                raw = "\n".join(pages)
+            # Try pdfplumber first (better text extraction)
+            try:
+                with pdfplumber.open(io.BytesIO(content)) as pdf:
+                    pages = []
+                    for page in pdf.pages:
+                        try:
+                            text = page.extract_text()
+                            if text and len(text.strip()) > 10:
+                                # Clean the text
+                                cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
+                                if len(cleaned.strip()) > 10:
+                                    pages.append(cleaned)
+                        except Exception:
+                            continue
+                    
+                    if pages:
+                        raw = "\n".join(pages)
+                    else:
+                        # Fallback to PyPDF2
+                        raise ImportError("pdfplumber extraction failed")
+            except ImportError:
+                # Fallback to PyPDF2
+                reader = PdfReader(io.BytesIO(content))
+                pages = []
+                for page in reader.pages:
+                    try:
+                        text = page.extract_text()
+                        if text and len(text.strip()) > 10:
+                            # Filter out binary/corrupted text more aggressively
+                            cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
+                            # Remove common PDF artifacts
+                            cleaned = re.sub(r'\s*\d+\s*\.\s*\d+\s*', '', cleaned)
+                            cleaned = re.sub(r'\s*endobj\s*', '', cleaned)
+                            cleaned = re.sub(r'\s*stream\s*', '', cleaned)
+                            if len(cleaned.strip()) > 10:
+                                pages.append(cleaned)
+                    except Exception:
+                        continue
+                
+                if not pages:
+                    # Last resort: try to extract text from the entire document
+                    try:
+                        raw = content.decode('utf-8', errors='ignore')
+                        raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
+                        # Remove PDF structure artifacts
+                        raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
+                        raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
+                    except:
+                        raw = "Unable to extract text from PDF"
+                else:
+                    raw = "\n".join(pages)
         except Exception as e:
             raw = f"PDF parsing error: {str(e)}"
     elif name.endswith(".docx"):
@@ -149,6 +180,11 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     # Clean the extracted text
     raw = _strip_metadata(raw)
     raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)  # Remove any remaining non-ASCII
+    
+    # Additional cleaning for PDF artifacts
+    raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
+    raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
+    raw = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', raw)
     
     # Ensure we have meaningful content
     if len(raw.strip()) < 50:

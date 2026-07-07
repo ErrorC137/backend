@@ -361,8 +361,15 @@ def build_index(force: bool = False) -> dict[str, Any]:
         # Check if cached embeddings are compatible with current provider
         cached_provider = cached_meta.get("provider")
         current_provider_value = _current_provider.value if _current_provider else None
-        if cached_provider == current_provider_value and cached_meta.get("count") == len(_patents):
-            _embedding_matrix = np.load(emb_path)
+        cached_dims = cached_meta.get("embedding_dimensions")
+        
+        # Load cached embeddings to check dimensions
+        temp_matrix = np.load(emb_path)
+        actual_dims = temp_matrix.shape[1]
+        
+        # Rebuild if provider changed, count changed, or dimensions don't match expected
+        if cached_provider == current_provider_value and cached_meta.get("count") == len(_patents) and actual_dims == _EMBEDDING_DIM:
+            _embedding_matrix = temp_matrix
             _ready = True
             logger.info("Loaded cached patent index: %d patents from %s", len(_patents), cached_provider)
             return {
@@ -372,6 +379,11 @@ def build_index(force: bool = False) -> dict[str, Any]:
                 "model": cached_meta.get("model"),
                 "provider": cached_provider,
             }
+        else:
+            # Clear cache if dimensions or other parameters don't match
+            logger.warning(f"Cache mismatch: provider={cached_provider} vs {current_provider_value}, dims={actual_dims} vs {_EMBEDDING_DIM}, count={cached_meta.get('count')} vs {len(_patents)}. Rebuilding index.")
+            emb_path.unlink(missing_ok=True)
+            meta_path.unlink(missing_ok=True)
 
     texts = [f"{p['title']}. {p['abstract']}" for p in _patents]
     logger.info("Encoding %d patents via %s...", len(texts), _current_provider.value if _current_provider else "available provider")
