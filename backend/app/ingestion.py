@@ -115,19 +115,80 @@ def _extract_sections(text: str) -> tuple[str, str, str, list[str], float]:
 def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     name = filename.lower()
     if name.endswith(".pdf"):
+        raw = ""
+        extraction_method = ""
+        
         try:
-            import pdfplumber
-            
-            # Try pdfplumber first (better text extraction)
+            # Method 1: Try PyMuPDF (fitz) - most robust
             try:
-                with pdfplumber.open(io.BytesIO(content)) as pdf:
+                import fitz  # PyMuPDF
+                doc = fitz.open(stream=content, filetype="pdf")
+                pages_text = []
+                for page in doc:
+                    try:
+                        text = page.get_text()
+                        if text and len(text.strip()) > 10:
+                            pages_text.append(text)
+                    except Exception:
+                        continue
+                
+                if pages_text:
+                    raw = "\n".join(pages_text)
+                    extraction_method = "PyMuPDF"
+                    doc.close()
+                else:
+                    raise ImportError("PyMuPDF extraction returned no text")
+            except ImportError:
+                extraction_method = "PyMuPDF not available"
+                pass
+            
+            # Method 2: Try pdfplumber
+            if not raw or len(raw.strip()) < 50:
+                try:
+                    import pdfplumber
+                    with pdfplumber.open(io.BytesIO(content)) as pdf:
+                        pages = []
+                        for page in pdf.pages:
+                            try:
+                                text = page.extract_text()
+                                if text and len(text.strip()) > 10:
+                                    cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
+                                    if len(cleaned.strip()) > 10:
+                                        pages.append(cleaned)
+                            except Exception:
+                                continue
+                        
+                        if pages:
+                            raw = "\n".join(pages)
+                            extraction_method = "pdfplumber"
+                        else:
+                            raise ImportError("pdfplumber extraction failed")
+                except ImportError:
+                    extraction_method = "pdfplumber not available"
+                    pass
+            
+            # Method 3: Try PyPDF2 with enhanced cleaning
+            if not raw or len(raw.strip()) < 50:
+                try:
+                    reader = PdfReader(io.BytesIO(content))
                     pages = []
-                    for page in pdf.pages:
+                    for page in reader.pages:
                         try:
                             text = page.extract_text()
                             if text and len(text.strip()) > 10:
-                                # Clean the text
+                                # Aggressive cleaning
                                 cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
+                                # Remove PDF structure artifacts
+                                cleaned = re.sub(r'\s*\d+\s*\.\s*\d+\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*endobj\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*stream\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*endstream\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*xref\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*startxref\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', cleaned)
+                                cleaned = re.sub(r'\s*/Type\s*/\w+\s*', '', cleaned)
+                                cleaned = re.sub(r'\s/Subtype\s*/\w+\s*', '', cleaned)
+                                cleaned = re.sub(r'\s/Rect\s*\[.*?\]\s*', '', cleaned)
                                 if len(cleaned.strip()) > 10:
                                     pages.append(cleaned)
                         except Exception:
@@ -135,42 +196,102 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
                     
                     if pages:
                         raw = "\n".join(pages)
-                    else:
-                        # Fallback to PyPDF2
-                        raise ImportError("pdfplumber extraction failed")
-            except ImportError:
-                # Fallback to PyPDF2
-                reader = PdfReader(io.BytesIO(content))
-                pages = []
-                for page in reader.pages:
+                        extraction_method = "PyPDF2"
+                except Exception as e:
+                    extraction_method = f"PyPDF2 failed: {str(e)}"
+            
+            # Method 4: OCR fallback for image-based PDFs
+            if not raw or len(raw.strip()) < 50:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    import io
+                    
+                    # Try PyMuPDF to convert pages to images for OCR
                     try:
-                        text = page.extract_text()
-                        if text and len(text.strip()) > 10:
-                            # Filter out binary/corrupted text more aggressively
-                            cleaned = re.sub(r'[^\x20-\x7E\n\r\t]', '', text)
-                            # Remove common PDF artifacts
-                            cleaned = re.sub(r'\s*\d+\s*\.\s*\d+\s*', '', cleaned)
-                            cleaned = re.sub(r'\s*endobj\s*', '', cleaned)
-                            cleaned = re.sub(r'\s*stream\s*', '', cleaned)
-                            if len(cleaned.strip()) > 10:
-                                pages.append(cleaned)
-                    except Exception:
-                        continue
-                
-                if not pages:
-                    # Last resort: try to extract text from the entire document
-                    try:
-                        raw = content.decode('utf-8', errors='ignore')
-                        raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
-                        # Remove PDF structure artifacts
-                        raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
-                        raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
-                    except:
-                        raw = "Unable to extract text from PDF"
-                else:
-                    raw = "\n".join(pages)
+                        import fitz
+                        doc = fitz.open(stream=content, filetype="pdf")
+                        pages_text = []
+                        for page in doc:
+                            try:
+                                # Convert page to image
+                                pix = page.get_pixmap()
+                                img_data = pix.tobytes("png")
+                                image = Image.open(io.BytesIO(img_data))
+                                
+                                # OCR the image
+                                text = pytesseract.image_to_string(image)
+                                if text and len(text.strip()) > 10:
+                                    pages_text.append(text)
+                            except Exception:
+                                continue
+                        
+                        if pages_text:
+                            raw = "\n".join(pages_text)
+                            extraction_method = "OCR"
+                        doc.close()
+                    except Exception as e:
+                        extraction_method = f"OCR failed: {str(e)}"
+                except ImportError:
+                    extraction_method = "OCR not available (requires pytesseract and Pillow)"
+                    pass
+            
+            # Method 5: Last resort - decode with extensive cleaning
+            if not raw or len(raw.strip()) < 50:
+                try:
+                    raw = content.decode('utf-8', errors='ignore')
+                    # Comprehensive PDF artifact removal
+                    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
+                    raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
+                    raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
+                    raw = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', raw)
+                    raw = re.sub(r'\s*/Type\s*/\w+\s*', '', raw)
+                    raw = re.sub(r'\s/Subtype\s*/\w+\s*', '', raw)
+                    raw = re.sub(r'\s/Rect\s*\[.*?\]\s*', '', raw)
+                    raw = re.sub(r'\s/Action\s*', '', raw)
+                    raw = re.sub(r'\s/Dest\s*\(.*?\)\s*', '', raw)
+                    raw = re.sub(r'\s/Parent\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/First\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/Last\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/Count\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/Title\s*\(.*?\)\s*', '', raw)
+                    raw = re.sub(r'\s/Prev\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/Next\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/StructParent\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/F\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/BS\s*<<.*?>>\s*', '', raw)
+                    raw = re.sub(r'\s/S\s*/\w+\s*', '', raw)
+                    raw = re.sub(r'\s/W\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/CA\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/ca\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/LW\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/Filter\s*/\w+\s*', '', raw)
+                    raw = re.sub(r'\s/Length\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/BitsPerComponent\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/ColorSpace\s*/\w+\s*', '', raw)
+                    raw = re.sub(r'\s/Width\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/Height\s*\d+\s*', '', raw)
+                    raw = re.sub(r'\s/ICCBased\s*\d+\s+\d+\s+R\s*', '', raw)
+                    raw = re.sub(r'\s/Separation\s*/\w+\s*\[.*?\]\s*', '', raw)
+                    raw = re.sub(r'\s/creator\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/format\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/identifier\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/title\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/Seq\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/li\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/Alt\s*<.*?>\s*', '', raw)
+                    raw = re.sub(r'\s/li\s+xml:lang=.*?>\s*', '', raw)
+                    extraction_method = "raw_decode"
+                except Exception as e:
+                    raw = f"PDF parsing error: {str(e)}. Method used: {extraction_method}"
+            
+            # Final validation
+            if not raw or len(raw.strip()) < 50:
+                raw = f"Document content could not be properly extracted. The PDF may be image-based or corrupted. Extraction method: {extraction_method}. Please try a different file format."
+            
         except Exception as e:
             raw = f"PDF parsing error: {str(e)}"
+            
     elif name.endswith(".docx"):
         doc = Document(io.BytesIO(content))
         raw = "\n".join(p.text for p in doc.paragraphs)
@@ -181,10 +302,15 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     raw = _strip_metadata(raw)
     raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)  # Remove any remaining non-ASCII
     
-    # Additional cleaning for PDF artifacts
+    # Additional cleaning for PDF artifacts that might have survived
     raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
     raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
     raw = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', raw)
+    raw = re.sub(r'\s*/Type\s*/\w+\s*', '', raw)
+    raw = re.sub(r'\s/Subtype\s*/\w+\s*', '', raw)
+    raw = re.sub(r'\s/Rect\s*\[.*?\]\s*', '', raw)
+    raw = re.sub(r'\s/Action\s*', '', raw)
+    raw = re.sub(r'\s/Dest\s*\(.*?\)\s*', '', raw)
     
     # Ensure we have meaningful content
     if len(raw.strip()) < 50:
