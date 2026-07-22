@@ -412,6 +412,65 @@ def analyze_market_mapping(
     # Sort by fit score
     opportunities.sort(key=lambda x: x.fit_score, reverse=True)
     
+    # Generate strategic recommendations based on analysis
+    strategic_recommendations = []
+    if trl >= 6:
+        strategic_recommendations.extend([
+            "Focus on pilot-scale partnerships with established market players",
+            "Prepare regulatory documentation for target markets",
+            "Develop go-to-market strategy for top 2 market opportunities",
+            "Consider licensing agreements for faster market entry"
+        ])
+    elif trl >= 4:
+        strategic_recommendations.extend([
+            "Prioritize prototype validation for highest-fit market applications",
+            "Engage with potential strategic partners for co-development",
+            "Secure funding for pilot-scale demonstrations",
+            "Build IP portfolio around key market applications"
+        ])
+    else:
+        strategic_recommendations.extend([
+            "Focus on technical validation and proof-of-concept development",
+            "Identify research partnerships with industry players",
+            "Target grant funding for early-stage development",
+            "File provisional patents to protect core innovations"
+        ])
+
+    # Generate market entry strategy
+    market_entry_strategy = {
+        "recommended_approach": "Direct licensing" if trl >= 7 else "Joint development" if trl >= 4 else "Research partnership",
+        "timeline_estimate": f"{12 - trl} months to initial market entry" if trl >= 4 else "24+ months to market entry",
+        "key_milestones": [
+            "Technical validation complete" if trl >= 4 else "Proof-of-concept development",
+            "Partner identification and engagement",
+            "Pilot-scale demonstration" if trl >= 4 else "Laboratory validation",
+            "Market entry planning and execution"
+        ],
+        "resource_requirements": [
+            "Technical development team",
+            "Business development expertise",
+            "Legal/IP support",
+            "Market research and validation"
+        ]
+    }
+
+    # Generate competitive analysis
+    competitive_analysis = {
+        "market_saturation": "High" if trl >= 7 else "Medium" if trl >= 4 else "Low",
+        "differentiation_opportunities": [
+            "Performance advantages over existing solutions",
+            "Cost reduction potential",
+            "Novel application areas",
+            "Sustainability benefits"
+        ],
+        "barriers_to_entry": [
+            "Technical complexity and expertise requirements",
+            "Regulatory compliance needs",
+            "Capital requirements for scale-up",
+            "Established competitor relationships"
+        ]
+    }
+
     return {
         "working_field": matched_field,
         "overall_accuracy_score": accuracy_score,
@@ -435,4 +494,20 @@ def analyze_market_mapping(
         ],
         "total_opportunities": len(opportunities),
         "top_opportunity": opportunities[0].market_name if opportunities else None,
+        "strategic_recommendations": strategic_recommendations,
+        "market_entry_strategy": market_entry_strategy,
+        "competitive_analysis": competitive_analysis,
+        "development_insights": {
+            "current_stage_assessment": f"TRL {trl} indicates {'commercialization-ready' if trl >= 7 else 'prototype-stage' if trl >= 4 else 'research-stage'} development",
+            "next_critical_milestones": [
+                "Complete pilot-scale validation" if trl < 7 else "Scale manufacturing processes",
+                "Secure strategic partnerships" if trl < 6 else "Execute market entry strategy",
+                "Obtain regulatory approvals" if trl < 8 else "Expand market presence"
+            ],
+            "funding_recommendations": {
+                "stage": "Series B or strategic investment" if trl >= 7 else "Series A or venture capital" if trl >= 4 else "Seed funding or grants",
+                "estimated_range": "$5-20M" if trl >= 7 else "$1-5M" if trl >= 4 else "$500K-2M",
+                "focus_areas": ["Scale-up and commercialization"] if trl >= 7 else ["Pilot development and partnerships"] if trl >= 4 else ["R&D and prototype development"]
+            }
+        }
     }

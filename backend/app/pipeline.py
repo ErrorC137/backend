@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import time
 
 from app.classifier import classify_document
 from app.fto import analyze_fto
@@ -22,8 +23,19 @@ try:
 except ImportError:
     DEEPSEEK_AVAILABLE = False
 
+# API usage tracking
+api_usage = {
+    "deepseek_calls": 0,
+    "openai_calls": 0,
+    "cohere_calls": 0,
+    "patent_api_calls": 0,
+    "total_analysis_time": 0
+}
+
 
 async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
+    start_time = time.time()
+    
     doc = parse_upload(filename, content)
     analysis_text = f"{doc.abstract}\n{doc.methodology}\n{doc.claims_outcomes}"
 
@@ -39,6 +51,7 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
             text_content=analysis_text,
             limit=10
         )
+        api_usage["patent_api_calls"] += 1
         
         # If we got real patent data, enhance originality with it
         if patent_analysis["total_matches"] > 0:
@@ -104,13 +117,19 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
                 originality=originality,
                 title_hint=doc.abstract[:120] if doc.abstract else "",
             )
+            api_usage["deepseek_calls"] += 1
             due_diligence_report = enhance_due_diligence_with_deepseek(
                 analysis_text,
                 classification=classification,
                 title_hint=doc.abstract[:120] if doc.abstract else "",
             )
+            api_usage["deepseek_calls"] += 1
         except Exception as e:
             print(f"DeepSeek enhancement failed: {e}")
+
+    # Calculate total analysis time
+    total_time = time.time() - start_time
+    api_usage["total_analysis_time"] = round(total_time, 2)
 
     result = {
         "document_profile": {
@@ -144,6 +163,7 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
             "methodology_chars": len(doc.methodology),
             "claims_chars": len(doc.claims_outcomes),
         },
+        "api_usage": api_usage.copy(),
     }
 
     return sign_report(result)
