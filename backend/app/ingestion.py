@@ -240,47 +240,31 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
             if not raw or len(raw.strip()) < 50:
                 try:
                     raw = content.decode('utf-8', errors='ignore')
-                    # Comprehensive PDF artifact removal
+                    # Comprehensive PDF artifact removal - more aggressive
                     raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
-                    raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
-                    raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
-                    raw = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', raw)
-                    raw = re.sub(r'\s*/Type\s*/\w+\s*', '', raw)
-                    raw = re.sub(r'\s/Subtype\s*/\w+\s*', '', raw)
-                    raw = re.sub(r'\s/Rect\s*\[.*?\]\s*', '', raw)
-                    raw = re.sub(r'\s/Action\s*', '', raw)
-                    raw = re.sub(r'\s/Dest\s*\(.*?\)\s*', '', raw)
-                    raw = re.sub(r'\s/Parent\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/First\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/Last\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/Count\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/Title\s*\(.*?\)\s*', '', raw)
-                    raw = re.sub(r'\s/Prev\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/Next\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/StructParent\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/F\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/BS\s*<<.*?>>\s*', '', raw)
-                    raw = re.sub(r'\s/S\s*/\w+\s*', '', raw)
-                    raw = re.sub(r'\s/W\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/CA\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/ca\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/LW\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/Filter\s*/\w+\s*', '', raw)
-                    raw = re.sub(r'\s/Length\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/BitsPerComponent\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/ColorSpace\s*/\w+\s*', '', raw)
-                    raw = re.sub(r'\s/Width\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/Height\s*\d+\s*', '', raw)
-                    raw = re.sub(r'\s/ICCBased\s*\d+\s+\d+\s+R\s*', '', raw)
-                    raw = re.sub(r'\s/Separation\s*/\w+\s*\[.*?\]\s*', '', raw)
-                    raw = re.sub(r'\s/creator\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/format\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/identifier\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/title\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/Seq\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/li\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/Alt\s*<.*?>\s*', '', raw)
-                    raw = re.sub(r'\s/li\s+xml:lang=.*?>\s*', '', raw)
+                    # Remove all PDF structure keywords
+                    pdf_keywords = ['endobj', 'stream', 'endstream', 'xref', 'startxref', 'obj', 'R']
+                    for keyword in pdf_keywords:
+                        raw = re.sub(rf'\b{keyword}\b', '', raw, flags=re.IGNORECASE)
+                    # Remove PDF dictionary structures
+                    raw = re.sub(r'<<.*?>>', '', raw, flags=re.DOTALL)
+                    # Remove PDF array structures
+                    raw = re.sub(r'\[.*?\]', '', raw, flags=re.DOTALL)
+                    # Remove PDF name objects
+                    raw = re.sub(r'/\w+', '', raw)
+                    # Remove PDF numeric references
+                    raw = re.sub(r'\b\d+\s+\d+\s+R\b', '', raw)
+                    raw = re.sub(r'\b\d+\s+obj\b', '', raw)
+                    # Remove common PDF artifacts
+                    raw = re.sub(r'/Type|/Subtype|/Rect|/Action|/Dest|/Parent|/First|/Last|/Count|/Title|/Prev|/Next|/StructParent|/F|/BS|/S|/W|/CA|/ca|/LW|/Filter|/Length|/BitsPerComponent|/ColorSpace|/Width|/Height|/ICCBased|/Separation', '', raw, flags=re.IGNORECASE)
+                    # Remove hex-encoded content
+                    raw = re.sub(r'[0-9A-Fa-f]{20,}', '', raw)
+                    # Remove base64-like content
+                    raw = re.sub(r'[A-Za-z0-9+/]{50,}={0,2}', '', raw)
+                    # Remove repeated special characters
+                    raw = re.sub(r'[<>{}\\]+', '', raw)
+                    # Clean up whitespace
+                    raw = re.sub(r'\s+', ' ', raw)
                     extraction_method = "raw_decode"
                 except Exception as e:
                     raw = f"PDF parsing error: {str(e)}. Method used: {extraction_method}"

@@ -122,7 +122,11 @@ async def analyze(file: UploadFile = File(...), client_ip: str = "0.0.0.0"):
     try:
         result = await run_analysis(file.filename, content)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
+        import traceback
+        error_detail = f"Analysis failed: {str(exc)}"
+        print(f"Analysis error: {error_detail}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=error_detail) from exc
     finally:
         del content
 

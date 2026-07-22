@@ -15,6 +15,7 @@ from app.valuation import calculate_valuation
 from app.patent_data import patent_service
 from app.nlp_analysis import nlp_analyzer
 from app.market_mapping import analyze_market_mapping
+from app.comprehensive_analysis import generate_comprehensive_analysis
 
 # Import DeepSeek enhancements
 try:
@@ -131,6 +132,18 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
     total_time = time.time() - start_time
     api_usage["total_analysis_time"] = round(total_time, 2)
 
+    # Generate comprehensive analysis with detailed paragraphs
+    comprehensive_analysis = generate_comprehensive_analysis(
+        doc=doc,
+        classification=classification,
+        originality=originality,
+        fto=fto,
+        valuation=enhanced_valuation,
+        trl_evaluation=trl_evaluation,
+        market_mapping=market_mapping,
+        nlp_analysis=nlp_analysis,
+    )
+
     result = {
         "document_profile": {
             "document_type": doc.document_type,
@@ -158,6 +171,7 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
         "due_diligence_report": due_diligence_report,
         "nlp_analysis": nlp_analysis,
         "market_mapping": market_mapping,
+        "comprehensive_analysis": comprehensive_analysis,
         "document_stats": {
             "abstract_chars": len(doc.abstract),
             "methodology_chars": len(doc.methodology),
