@@ -62,41 +62,103 @@ def _evaluate_trl_regex(
     valuation: dict[str, Any] | None = None,
     title_hint: str = "",
 ) -> dict[str, Any]:
-    """Original regex-based TRL evaluation as fallback."""
+    """Original regex-based TRL evaluation as fallback with improved accuracy."""
     text = f"{title_hint}\n{analysis_text}".lower()
     sector = (classification or {}).get("sector_name", "Deep Tech")
 
-    trl = 3
-    if re.search(r"production|market|customer|licensed|factory|commercial|certified|faa|deployed", text):
+    # Enhanced TRL detection with more specific patterns and better accuracy
+    trl = 3  # Default to TRL 3 (lab validation)
+    
+    # TRL 9: Actual system proven in successful operational environment
+    if re.search(r"production\s+ready|fully\s+operational|commercial\s+production|mass\s+production|certified\s+for\s+use|fda\s+approved|market\s+launch|full\s+scale\s+manufacturing", text):
+        trl = 9
+    # TRL 8: System complete and qualified
+    elif re.search(r"production|market|customer|licensed|factory|commercial|certified|faa|deployed|pre-production|final\s+assembly", text):
         trl = 8
-    elif re.search(r"pilot\s+plant|refinery|field\s+test|operational\s+environment|demonstration\s+system", text):
+    # TRL 7: System prototype demonstration in operational environment
+    elif re.search(r"pilot\s+plant|refinery|field\s+test|operational\s+environment|demonstration\s+system|operational\s+demonstration|real\s+world\s+environment", text):
         trl = 7
-    elif re.search(r"pilot|plant|refinery|environment|field test|operational", text):
+    # TRL 6: Technology demonstration in relevant environment
+    elif re.search(r"pilot|plant|refinery|environment|field test|operational|relevant\s+environment|demonstration\s+in\s+relevant", text):
         trl = 6
-    elif re.search(r"prototype|functional|assembly|working model|bench[- ]scale|validated\s+in\s+lab", text):
+    # TRL 5: Technology validation in relevant environment
+    elif re.search(r"validated\s+in\s+relevant\s+environment|relevant\s+environment\s+validation|field\s+validation|real\s+world\s+validation", text):
+        trl = 5
+    # TRL 4: Technology validation in laboratory environment
+    elif re.search(r"prototype|functional|assembly|working model|bench[- ]scale|validated\s+in\s+lab|laboratory\s+validation|lab\s+scale|component\s+validation", text):
         trl = 4
-    elif re.search(r"theory|concept|simulated|modeling|formulate|computational", text):
+    # TRL 3: Experimental proof of concept
+    elif re.search(r"experiment|lab\s+test|laboratory\s+test|proof\s+of\s+concept|poc|experimental\s+validation|bench\s+scale\s+experiment", text):
+        trl = 3
+    # TRL 2: Technology concept formulated
+    elif re.search(r"theory|concept|simulated|modeling|formulate|computational|theoretical\s+analysis|conceptual\s+design", text):
         trl = 2
+    # TRL 1: Basic principles observed
+    elif re.search(r"basic\s+research|fundamental\s+research|principle\s+observed|scientific\s+principle|research\s+principle", text):
+        trl = 1
+
+    # Enhanced TRL adjustment based on multiple indicators
+    trl_indicators = 0
+    
+    # Check for experimental validation indicators
+    if re.search(r"experiment|test|validation|result|data|measurement|performance", text):
+        trl_indicators += 1
+    
+    # Check for prototype indicators
+    if re.search(r"prototype|model|demonstrat|working|functional", text):
+        trl_indicators += 1
+        
+    # Check for scale indicators
+    if re.search(r"scale|pilot|plant|production|manufactur", text):
+        trl_indicators += 1
+        
+    # Check for market indicators
+    if re.search(r"market|customer|commercial|business|revenue", text):
+        trl_indicators += 1
+        
+    # Adjust TRL based on indicator count
+    if trl_indicators >= 3 and trl < 5:
+        trl = min(5, trl + 1)
+    elif trl_indicators >= 2 and trl < 4:
+        trl = min(4, trl + 1)
 
     # Boost TRL slightly when valuation anchor is high (proxy for commercial maturity)
     if valuation:
         anchor = valuation.get("v_target_usd", 0)
         if anchor > 5_000_000 and trl < 6:
             trl = min(6, trl + 1)
+        elif anchor > 10_000_000 and trl < 7:
+            trl = min(7, trl + 1)
+
+    # Ensure minimum TRL of 3 for documents with experimental data
+    if re.search(r"experiment|test|result|data|measurement|performance|validation", text) and trl < 3:
+        trl = 3
+        
+    # Ensure minimum TRL of 4 for documents with prototype mentions
+    if re.search(r"prototype|working model|functional model|demonstrat", text) and trl < 4:
+        trl = 4
 
     trl = max(1, min(9, trl))
 
     accomplishments: list[str] = []
+    if trl >= 1:
+        accomplishments.append("Basic principles observed and documented through fundamental research.")
     if trl >= 2:
-        accomplishments.append("Formulated research framework and validated theoretical foundations.")
+        accomplishments.append("Technology concept formulated with theoretical framework and computational modeling.")
     if trl >= 3:
-        accomplishments.append("Completed initial laboratory synthesis and bench-scale validations.")
+        accomplishments.append("Experimental proof of concept established through laboratory validation and bench-scale testing.")
+    if trl >= 4:
+        accomplishments.append("Technology validated in laboratory environment with functional prototype demonstration.")
     if trl >= 5:
-        accomplishments.append("Demonstrated functional prototype performance in controlled environments.")
+        accomplishments.append("Technology validated in relevant environment with component and system integration.")
+    if trl >= 6:
+        accomplishments.append("Technology demonstrated in relevant environment with system-level performance validation.")
     if trl >= 7:
-        accomplishments.append("Validated system performance under operational or pilot-scale conditions.")
+        accomplishments.append("System prototype demonstrated in operational environment with pilot-scale validation.")
     if trl >= 8:
-        accomplishments.append("Achieved certification or pre-production readiness milestones.")
+        accomplishments.append("System complete and qualified for production with certification and manufacturing readiness.")
+    if trl >= 9:
+        accomplishments.append("Actual system proven in successful operational environment with commercial production and market deployment.")
 
     originality_boost = 0
     innovation_score = min(99, max(45, 40 + trl * 6 + originality_boost))

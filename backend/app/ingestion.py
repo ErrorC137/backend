@@ -282,19 +282,31 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     else:
         raw = content.decode("utf-8", errors="replace")
 
-    # Clean the extracted text
+    # Clean the extracted text - aggressive PDF artifact removal
     raw = _strip_metadata(raw)
-    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)  # Remove any remaining non-ASCII
     
-    # Additional cleaning for PDF artifacts that might have survived
-    raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw)
-    raw = re.sub(r'\s*\d+\s+\d+\s+obj\s*', '', raw)
-    raw = re.sub(r'\s*<<\s*/\s*\w+\s*/\s*\w+\s*>>\s*', '', raw)
-    raw = re.sub(r'\s*/Type\s*/\w+\s*', '', raw)
-    raw = re.sub(r'\s/Subtype\s*/\w+\s*', '', raw)
-    raw = re.sub(r'\s/Rect\s*\[.*?\]\s*', '', raw)
-    raw = re.sub(r'\s/Action\s*', '', raw)
-    raw = re.sub(r'\s/Dest\s*\(.*?\)\s*', '', raw)
+    # Remove all non-ASCII characters first
+    raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
+    
+    # Aggressive PDF artifact removal
+    raw = re.sub(r'/\w+', '', raw)  # Remove all PDF name objects
+    raw = re.sub(r'\b\d+\s+\d+\s+R\b', '', raw)  # Remove PDF references
+    raw = re.sub(r'\b\d+\s+obj\b', '', raw)  # Remove object references
+    raw = re.sub(r'<<.*?>>', '', raw, flags=re.DOTALL)  # Remove PDF dictionaries
+    raw = re.sub(r'\[.*?\]', '', raw, flags=re.DOTALL)  # Remove PDF arrays
+    raw = re.sub(r'\bendobj\b|\bstream\b|\bendstream\b|\bxref\b|\bstartxref\b', '', raw, flags=re.IGNORECASE)
+    raw = re.sub(r'/Type|/Subtype|/Rect|/Action|/Dest|/Parent|/First|/Last|/Count|/Title|/Prev|/Next|/StructParent|/F|/BS|/S|/W|/CA|/ca|/LW|/Filter|/Length|/BitsPerComponent|/ColorSpace|/Width|/Height|/ICCBased|/Separation', '', raw, flags=re.IGNORECASE)
+    raw = re.sub(r'/Pg\s+\d+\s+\d+\s+R', '', raw)  # Remove page references
+    raw = re.sub(r'/K\s*\[.*?\]', '', raw, flags=re.DOTALL)  # Remove PDF arrays
+    raw = re.sub(r'/H\d+', '', raw)  # Remove heading references
+    raw = re.sub(r'/P\s+\d+\s+\d+\s+R', '', raw)  # Remove paragraph references
+    raw = re.sub(r'/T\s*\([^)]*\)', '', raw)  # Remove text references
+    raw = re.sub(r'/E\s*\([^)]*\)', '', raw)  # Remove element references
+    raw = re.sub(r'/A\s*\[.*?\]', '', raw, flags=re.DOTALL)  # Remove action arrays
+    raw = re.sub(r'[0-9A-Fa-f]{20,}', '', raw)  # Remove hex-encoded content
+    raw = re.sub(r'[A-Za-z0-9+/]{50,}={0,2}', '', raw)  # Remove base64-like content
+    raw = re.sub(r'[<>{}\\]+', '', raw)  # Remove special characters
+    raw = re.sub(r'\s+', ' ', raw)  # Clean up whitespace
     
     # Ensure we have meaningful content
     if len(raw.strip()) < 50:
