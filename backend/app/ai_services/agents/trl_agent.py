@@ -283,5 +283,5 @@ Provide your assessment in the specified JSON format, considering both technical
                 tokens_used=response.tokens_used,
                 cost_usd=response.cost_usd,
             )
-        except (json.JSONDecodeError, KeyError"):
+        except (json.JSONDecodeError, KeyError):
             return self._fallback_assessment(document_content)
