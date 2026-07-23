@@ -133,16 +133,36 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
     api_usage["total_analysis_time"] = round(total_time, 2)
 
     # Generate comprehensive analysis with detailed paragraphs
-    comprehensive_analysis = generate_comprehensive_analysis(
-        doc=doc,
-        classification=classification,
-        originality=originality,
-        fto=fto,
-        valuation=enhanced_valuation,
-        trl_evaluation=trl_evaluation,
-        market_mapping=market_mapping,
-        nlp_analysis=nlp_analysis,
-    )
+    # Temporarily disable multi-agent until API keys are configured
+    try:
+        comprehensive_analysis = generate_comprehensive_analysis(
+            doc=doc,
+            classification=classification,
+            originality=originality,
+            fto=fto,
+            valuation=enhanced_valuation,
+            trl_evaluation=trl_evaluation,
+            market_mapping=market_mapping,
+            nlp_analysis=nlp_analysis,
+            title=doc.abstract[:100] if doc.abstract else filename,
+            use_multi_agent=False,  # Disabled until API keys configured
+        )
+    except Exception as e:
+        print(f"Comprehensive analysis failed: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        # Create minimal fallback analysis
+        comprehensive_analysis = {
+            "executive_summary": f"Analysis completed for {filename}. Document type: {doc.document_type}. TRL: {trl_evaluation.get('estimated_trl', 'Unknown')}. Valuation: ${enhanced_valuation.get('v_target_usd', 0):,.0f}.",
+            "technical_analysis": f"Classification: {classification.get('sector_name', 'Unknown')} sector, IPC: {classification.get('ipc_primary', 'Unknown')}. Originality score: {originality.get('originality_premium_s', 0):.2f}.",
+            "market_analysis": f"Market stage: {market_mapping.get('market_stage', 'Unknown')}. Commercial readiness: {market_mapping.get('commercial_readiness', 'Unknown')}.",
+            "ip_competitive_analysis": f"FTO risk: {fto.get('fto_risk', 'Unknown')}. Patent matches found: {len(originality.get('top_matches', []))}.",
+            "development_roadmap": f"Current TRL: {trl_evaluation.get('estimated_trl', 3)}. Estimated time to next level: {trl_evaluation.get('estimated_time_to_next_level', 'Unknown')}.",
+            "risk_assessment": f"Technical risks based on FTO analysis: {fto.get('fto_risk', 'Unknown')}. Market risks: {market_mapping.get('market_stage', 'Unknown')}.",
+            "strategic_recommendations": f"Based on TRL {trl_evaluation.get('estimated_trl', 3)}, focus on validation and market engagement. IP protection recommended based on originality analysis.",
+            "investment_thesis": f"Valuation: ${enhanced_valuation.get('v_target_usd', 0):,.0f}. Investment attractiveness: {enhanced_valuation.get('investment_attractiveness', 'Unknown')}.",
+            "error": str(e),
+        }
 
     result = {
         "document_profile": {
