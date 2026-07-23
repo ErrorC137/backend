@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+# Import multi-agent system
+try:
+    from app.ai_services.integration import analyze_with_multi_agent, get_multi_agent_system
+    MULTI_AGENT_AVAILABLE = True
+except ImportError:
+    MULTI_AGENT_AVAILABLE = False
+
 
 def generate_comprehensive_analysis(
     doc: Any,
@@ -14,11 +21,94 @@ def generate_comprehensive_analysis(
     trl_evaluation: dict[str, Any],
     market_mapping: dict[str, Any],
     nlp_analysis: dict[str, Any],
+    title: str = "Unknown",
+    use_multi_agent: bool = True,
 ) -> dict[str, Any]:
     """
     Generate comprehensive analysis with detailed paragraphs of insights
     and meaningful recommendations based on the paper content.
+    
+    Args:
+        doc: Document object with abstract, methodology, claims_outcomes
+        classification: Classification data including sector_name
+        originality: Originality and patent data
+        fto: Freedom to operate analysis data
+        valuation: Valuation data
+        trl_evaluation: TRL evaluation data
+        market_mapping: Market mapping data
+        nlp_analysis: NLP analysis data
+        title: Document title
+        use_multi_agent: Whether to use multi-agent system if available
+    
+    Returns:
+        Dictionary with comprehensive analysis sections
     """
+    
+    # Try multi-agent system first if available and enabled
+    if MULTI_AGENT_AVAILABLE and use_multi_agent:
+        try:
+            import asyncio
+            
+            # Check if we're in an async context
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, need to handle differently
+                    # For now, fall back to rule-based
+                    pass
+                else:
+                    # We can create a new event loop
+                    result = loop.run_until_complete(
+                        analyze_with_multi_agent(
+                            doc=doc,
+                            classification=classification,
+                            originality=originality,
+                            fto=fto,
+                            valuation=valuation,
+                            trl_evaluation=trl_evaluation,
+                            market_mapping=market_mapping,
+                            nlp_analysis=nlp_analysis,
+                            title=title,
+                        )
+                    )
+                    return result
+            except RuntimeError:
+                # No event loop, create one
+                result = asyncio.run(
+                    analyze_with_multi_agent(
+                        doc=doc,
+                        classification=classification,
+                        originality=originality,
+                        fto=fto,
+                        valuation=valuation,
+                        trl_evaluation=trl_evaluation,
+                        market_mapping=market_mapping,
+                        nlp_analysis=nlp_analysis,
+                        title=title,
+                    )
+                )
+                return result
+        except Exception as e:
+            print(f"Multi-agent analysis failed, falling back to rule-based: {e}")
+            # Fall through to rule-based analysis
+    
+    # Rule-based analysis (original implementation)
+    return _generate_rule_based_analysis(
+        doc, classification, originality, fto, valuation, trl_evaluation, market_mapping, nlp_analysis
+    )
+
+
+def _generate_rule_based_analysis(
+    doc: Any,
+    classification: dict[str, Any],
+    originality: dict[str, Any],
+    fto: dict[str, Any],
+    valuation: dict[str, Any],
+    trl_evaluation: dict[str, Any],
+    market_mapping: dict[str, Any],
+    nlp_analysis: dict[str, Any],
+) -> dict[str, Any]:
+    """Generate rule-based comprehensive analysis (original implementation)."""
     
     # Extract key information
     abstract = doc.abstract if doc else ""
