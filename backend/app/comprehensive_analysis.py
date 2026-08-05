@@ -12,7 +12,7 @@ except ImportError:
     MULTI_AGENT_AVAILABLE = False
 
 
-def generate_comprehensive_analysis(
+async def generate_comprehensive_analysis(
     doc: Any,
     classification: dict[str, Any],
     originality: dict[str, Any],
@@ -47,47 +47,17 @@ def generate_comprehensive_analysis(
     # Try multi-agent system first if available and enabled
     if MULTI_AGENT_AVAILABLE and use_multi_agent:
         try:
-            import asyncio
-            
-            # Check if we're in an async context
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # We're in an async context, need to handle differently
-                    # For now, fall back to rule-based
-                    pass
-                else:
-                    # We can create a new event loop
-                    result = loop.run_until_complete(
-                        analyze_with_multi_agent(
-                            doc=doc,
-                            classification=classification,
-                            originality=originality,
-                            fto=fto,
-                            valuation=valuation,
-                            trl_evaluation=trl_evaluation,
-                            market_mapping=market_mapping,
-                            nlp_analysis=nlp_analysis,
-                            title=title,
-                        )
-                    )
-                    return result
-            except RuntimeError:
-                # No event loop, create one
-                result = asyncio.run(
-                    analyze_with_multi_agent(
-                        doc=doc,
-                        classification=classification,
-                        originality=originality,
-                        fto=fto,
-                        valuation=valuation,
-                        trl_evaluation=trl_evaluation,
-                        market_mapping=market_mapping,
-                        nlp_analysis=nlp_analysis,
-                        title=title,
-                    )
-                )
-                return result
+            return await analyze_with_multi_agent(
+                doc=doc,
+                classification=classification,
+                originality=originality,
+                fto=fto,
+                valuation=valuation,
+                trl_evaluation=trl_evaluation,
+                market_mapping=market_mapping,
+                nlp_analysis=nlp_analysis,
+                title=title,
+            )
         except Exception as e:
             print(f"Multi-agent analysis failed, falling back to rule-based: {e}")
             # Fall through to rule-based analysis
@@ -118,17 +88,17 @@ def _generate_rule_based_analysis(
     
     # Generate detailed executive summary
     executive_summary = _generate_executive_summary(
-        abstract, classification, trl_evaluation, valuation
+        abstract, classification, trl_evaluation, valuation, doc
     )
     
     # Generate technical analysis
     technical_analysis = _generate_technical_analysis(
-        methodology, classification, originality, fto
+        methodology, classification, originality, fto, doc
     )
     
     # Generate market analysis
     market_analysis = _generate_market_analysis(
-        market_mapping, valuation, trl_evaluation
+        market_mapping, valuation, trl_evaluation, doc
     )
     
     # Generate IP and competitive analysis
@@ -178,13 +148,43 @@ def _generate_executive_summary(
     abstract: str,
     classification: dict[str, Any],
     trl_evaluation: dict[str, Any],
-    valuation: dict[str, Any]
+    valuation: dict[str, Any],
+    doc: Any = None
 ) -> str:
     """Generate detailed executive summary with extensive analysis."""
     trl = trl_evaluation.get("trl", 3)
     sector = classification.get("sector_name", "Deep Tech")
     ipc_primary = classification.get("ipc_primary", "Unknown")
     novelty_score = classification.get("novelty_score", 0.5)
+    
+    # Extract document metadata
+    authors = doc.authors if doc and hasattr(doc, 'authors') else []
+    institutions = doc.institutions if doc and hasattr(doc, 'institutions') else []
+    keywords = doc.keywords if doc and hasattr(doc, 'keywords') else []
+    
+    # Build author/institution section
+    author_section = ""
+    if authors:
+        author_section = f"\n\n### Research Team and Institutional Affiliation\n\n"
+        author_section += f"This research was conducted by {', '.join(authors[:5])}"
+        if len(authors) > 5:
+            author_section += f" and {len(authors) - 5} additional authors"
+        author_section += ". "
+        
+        if institutions:
+            author_section += f"The work was performed at {', '.join(institutions[:3])}"
+            if len(institutions) > 3:
+                author_section += f" and {len(institutions) - 3} other institutions"
+            author_section += ". "
+        
+        author_section += "The research team's expertise and institutional resources provide credibility to the technical approach and experimental validation presented in this work."
+    
+    # Build keywords section
+    keywords_section = ""
+    if keywords:
+        keywords_section = f"\n\n### Key Technical Focus Areas\n\n"
+        keywords_section += f"The research focuses on the following technical domains: {', '.join(keywords[:8])}. "
+        keywords_section += "These areas indicate the technology's positioning within the broader technical landscape and its potential applications across multiple industrial sectors."
     
     summary = f"""
 ## Executive Summary
@@ -193,10 +193,11 @@ This comprehensive analysis evaluates a {sector} technology classified under IPC
 
 ### Technology Overview and Innovation Assessment
 
-{abstract[:800] if abstract else "The document presents innovative research in materials science with potential applications across multiple industrial sectors. The technology addresses critical challenges in the field through novel approaches that demonstrate significant potential for commercial application."}
+{abstract[:1500] if abstract else "The document presents innovative research in materials science with potential applications across multiple industrial sectors. The technology addresses critical challenges in the field through novel approaches that demonstrate significant potential for commercial application."}
 
 The technology demonstrates {'exceptional novelty' if novelty_score > 0.8 else 'high novelty' if novelty_score > 0.6 else 'moderate novelty' if novelty_score > 0.4 else 'incremental innovation' if novelty_score > 0.2 else 'limited novelty'} with a novelty score of {novelty_score:.2f}. This indicates {'strong differentiation from existing solutions' if novelty_score > 0.6 else 'some differentiation from existing approaches' if novelty_score > 0.4 else 'incremental improvements over current technologies'}. The technical approach shows {'significant potential for disruption' if novelty_score > 0.7 else 'promising potential for market impact' if novelty_score > 0.5 else 'moderate potential for competitive advantage'}.
-
+{author_section}
+{keywords_section}
 ### Commercial Potential and Market Opportunity
 
 Based on the comprehensive analysis, the technology demonstrates {'exceptional commercial viability' if trl >= 7 else 'strong commercial viability' if trl >= 6 else 'moderate commercial potential' if trl >= 4 else 'early-stage commercial promise' if trl >= 2 else 'conceptual commercial potential requiring validation'}. The estimated valuation range of ${valuation.get('v_baseline_usd', 0):,.0f} - ${valuation.get('v_target_usd', 0):,.0f} reflects the technology's current development stage, market opportunity, and competitive positioning.
@@ -264,7 +265,8 @@ def _generate_technical_analysis(
     methodology: str,
     classification: dict[str, Any],
     originality: dict[str, Any],
-    fto: dict[str, Any]
+    fto: dict[str, Any],
+    doc: Any = None
 ) -> str:
     """Generate detailed technical analysis with extensive depth."""
     ipc_primary = classification.get("ipc_primary", "Unknown")
@@ -272,6 +274,27 @@ def _generate_technical_analysis(
     patent_matches = len(originality.get("top_patent_matches", []))
     fto_risk = fto.get("risk_tier_pct", 0)
     sector = classification.get("sector_name", "Deep Technology")
+    
+    # Extract document metadata
+    keywords = doc.keywords if doc and hasattr(doc, 'keywords') else []
+    references = doc.references if doc and hasattr(doc, 'references') else []
+    
+    # Build keywords section
+    keywords_detail = ""
+    if keywords:
+        keywords_detail = f"\n\n### Technical Focus and Domain Expertise\n\n"
+        keywords_detail += f"The research demonstrates expertise in the following technical areas: {', '.join(keywords[:10])}. "
+        keywords_detail += "These technical domains indicate the depth and breadth of the research team's capabilities and the technology's potential applications. "
+        keywords_detail += "The intersection of these technical areas suggests a multidisciplinary approach that combines insights from multiple fields to achieve breakthrough results."
+    
+    # Build references section
+    references_detail = ""
+    if references:
+        references_detail = f"\n\n### Scientific Foundation and Prior Art\n\n"
+        references_detail += f"The research builds upon a foundation of {len(references)} prior scientific works and publications. "
+        references_detail += "This demonstrates thorough literature review and awareness of the state-of-the-art in the field. "
+        references_detail += "The citation pattern indicates engagement with established research communities and builds upon validated scientific principles. "
+        references_detail += "This foundation provides credibility to the technical approach and suggests the research is grounded in established scientific methodology."
     
     analysis = f"""
 ## Technical Analysis
@@ -295,7 +318,7 @@ The novelty assessment considers multiple factors:
 
 ### Technical Methodology and Approach
 
-{methodology[:1200] if methodology else "The document outlines a systematic approach to technology development with emphasis on experimental validation, performance optimization, and scalability considerations. The technical methodology demonstrates a structured approach to research and development with clear objectives and defined milestones."}
+{methodology[:2000] if methodology else "The document outlines a systematic approach to technology development with emphasis on experimental validation, performance optimization, and scalability considerations. The technical methodology demonstrates a structured approach to research and development with clear objectives and defined milestones."}
 
 The technical methodology exhibits {'exceptional rigor and scientific validity' if len(methodology) > 800 else 'strong scientific rigor with comprehensive validation' if len(methodology) > 500 else 'moderate scientific rigor with basic validation' if len(methodology) > 200 else 'limited scientific rigor requiring further development'}. The approach demonstrates {'comprehensive understanding of technical challenges and solutions' if len(methodology) > 800 else 'good understanding of technical requirements' if len(methodology) > 500 else 'basic understanding of technical challenges' if len(methodology) > 200 else 'limited technical understanding requiring development'}.
 
@@ -304,7 +327,8 @@ Key methodological strengths include:
 - {'Detailed performance metrics and measurement protocols' if 'performance' in methodology.lower() or 'metric' in methodology.lower() else 'Performance measurement approach' if 'result' in methodology.lower() else 'Basic performance assessment'}
 - {'Clear reproducibility protocols and documentation' if 'reproduc' in methodology.lower() or 'protocol' in methodology.lower() else 'Reproducibility considerations' if 'method' in methodology.lower() else 'Limited reproducibility documentation'}
 - {'Scalability considerations and manufacturing feasibility' if 'scal' in methodology.lower() or 'manufactur' in methodology.lower() else 'Basic scalability assessment' if 'scale' in methodology.lower() else 'Limited scalability considerations'}
-
+{keywords_detail}
+{references_detail}
 ### Freedom to Operate (FTO) Analysis
 
 The FTO assessment indicates {'minimal risk with favorable conditions for commercialization' if fto_risk < 15 else 'low risk with manageable IP considerations' if fto_risk < 30 else 'moderate risk requiring strategic IP management' if fto_risk < 50 else 'elevated risk requiring comprehensive IP strategy and potential licensing arrangements'}. The risk tier of {fto_risk:.1f}% reflects the complexity of the patent landscape and the potential for IP conflicts.
@@ -351,7 +375,8 @@ The technology faces several technical challenges that require attention:
 def _generate_market_analysis(
     market_mapping: dict[str, Any],
     valuation: dict[str, Any],
-    trl_evaluation: dict[str, Any]
+    trl_evaluation: dict[str, Any],
+    doc: Any = None
 ) -> str:
     """Generate detailed market analysis with extensive depth."""
     working_field = market_mapping.get("working_field", "Unknown")
@@ -360,9 +385,38 @@ def _generate_market_analysis(
     accuracy_score = market_mapping.get("overall_accuracy_score", 0)
     trl = trl_evaluation.get("trl", 3)
     
+    # Extract document metadata
+    keywords = doc.keywords if doc and hasattr(doc, 'keywords') else []
+    abstract = doc.abstract if doc and hasattr(doc, 'abstract') else ""
+    
+    # Check if document has market-related content
+    has_market_content = any(term in abstract.lower() for term in ['market', 'commercial', 'industry', 'application', 'customer', 'revenue', 'business'])
+    has_application_content = any(term in abstract.lower() for term in ['application', 'use case', 'implementation', 'deployment'])
+    
     strategic_recs = market_mapping.get("strategic_recommendations", [])
     market_entry = market_mapping.get("market_entry_strategy", {})
     competitive = market_mapping.get("competitive_analysis", {})
+    
+    # Build evidence-based market section
+    market_evidence = ""
+    if not has_market_content and not has_application_content:
+        market_evidence = f"\n\n### Market Analysis Evidence Limitation\n\n"
+        market_evidence += "**IMPORTANT**: The submitted document does not contain explicit market analysis, commercial applications, or business case information. "
+        market_evidence += "The market analysis below is based on the technology's technical classification and TRL assessment, but should be supplemented with dedicated market research. "
+        market_evidence += "For accurate market assessment, documents should include market size analysis, competitive landscape, target customer segments, and commercialization strategy."
+    elif has_market_content:
+        market_evidence = f"\n\n### Market Evidence from Document\n\n"
+        market_evidence += "The document contains market-related information that informs this analysis. "
+        market_evidence += "This includes discussion of market applications, commercial potential, and business considerations that provide context for the market assessment."
+    
+    # Build keywords market relevance section
+    keywords_market = ""
+    if keywords:
+        market_keywords = [k for k in keywords if k in ['application', 'commercial', 'industry', 'manufacturing', 'production', 'scalability', 'deployment']]
+        if market_keywords:
+            keywords_market = f"\n\n### Market-Relevant Technical Indicators\n\n"
+            keywords_market += f"The document mentions market-relevant technical aspects including: {', '.join(market_keywords)}. "
+            keywords_market += "These technical characteristics indicate the technology's readiness for market deployment and commercial application."
     
     analysis = f"""
 ## Market Analysis
@@ -372,7 +426,8 @@ def _generate_market_analysis(
 The technology is positioned within the {working_field} sector, which represents a {'mature and established market with clear growth trajectories' if trl >= 7 else 'growing and evolving market with significant expansion potential' if trl >= 4 else 'emerging and developing market with high growth potential' if trl >= 2 else 'nascent market requiring validation and development'}. The sector demonstrates {'strong and sustained growth driven by technological advancement and increasing demand' if trl >= 6 else 'promising growth patterns with emerging opportunities' if trl >= 4 else 'early-stage growth with significant potential' if trl >= 2 else 'conceptual growth requiring market validation'}.
 
 The comprehensive market analysis identifies {total_opportunities} distinct market opportunities, with {top_opportunity} representing the most promising initial target for commercialization. This market opportunity selection is based on {'strong market demand, favorable competitive dynamics, and alignment with technology capabilities' if total_opportunities > 5 else 'market demand, competitive positioning, and technical fit' if total_opportunities > 2 else 'emerging market opportunities requiring validation'}.
-
+{market_evidence}
+{keywords_market}
 ### Market Opportunity Assessment and Validation
 
 Based on the current development stage (TRL {trl}), the market mapping accuracy is estimated at {accuracy_score:.1f}%, reflecting {'high confidence in market fit with strong validation' if accuracy_score > 70 else 'moderate confidence requiring additional market validation' if accuracy_score > 50 else 'preliminary assessment needing comprehensive market testing and validation'}. This confidence level is derived from {'comprehensive market research and competitive analysis' if accuracy_score > 70 else 'market research and preliminary competitive analysis' if accuracy_score > 50 else 'initial market assessment requiring further validation'}.
@@ -422,10 +477,10 @@ Based on the comprehensive market analysis, the following strategic recommendati
 
 ### Market Size and Growth Potential Analysis
 
-The identified markets demonstrate {'strong and sustained growth trajectories driven by technological advancement and increasing demand' if trl >= 6 else 'promising growth potential with emerging opportunities' if trl >= 4 else 'early-stage growth patterns with significant potential' if trl >= 2 else 'conceptual growth requiring market validation'}. The valuation analysis suggests {'significant market upside with strong revenue potential' if valuation.get('v_target_usd', 0) > 1000000 else 'moderate market potential with clear revenue opportunities' if valuation.get('v_target_usd', 0) > 500000 else 'early-stage market opportunity with growth potential'}.
+The identified markets demonstrate {'strong and sustained growth trajectories driven by technological advancement and increasing demand' if trl >= 6 else 'promising growth potential with emerging opportunities' if trl >= 4 else 'early-stage growth patterns with significant potential' if trl >= 2 else 'conceptual growth requiring market validation'}. The document does not establish market size, customer demand, or pricing; these must be validated separately rather than inferred from the technical paper.
 
 Market size and growth considerations:
-- **Total Addressable Market (TAM)**: {'Large and growing market with significant revenue potential' if valuation.get('v_target_usd', 0) > 1000000 else 'Moderate market size with growth potential' if valuation.get('v_target_usd', 0) > 500000 else 'Early-stage market with growth potential'}
+- **Total Addressable Market (TAM)**: Not estimated — the submitted document contains no verified market-sizing evidence.
 - **Serviceable Addressable Market (SAM)**: {'Significant market segment accessible with current technology' if trl >= 5 else 'Accessible market segment requiring development' if trl >= 3 else 'Market segment requiring validation and development'}
 - **Serviceable Obtainable Market (SOM)**: {'Achievable market share with focused execution' if trl >= 5 else 'Realistic market share requiring strategic execution' if trl >= 3 else 'Market share requiring validation and strategic planning'}
 - **Market Growth Rate**: {'Strong and sustained growth driven by technological advancement' if trl >= 6 else 'Promising growth patterns with emerging opportunities' if trl >= 4 else 'Early-stage growth with significant potential' if trl >= 2 else 'Conceptual growth requiring validation'}

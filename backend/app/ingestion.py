@@ -10,6 +10,10 @@ from PyPDF2 import PdfReader
 from docx import Document
 
 
+class DocumentExtractionError(ValueError):
+    """Raised when an upload does not contain usable human-readable text."""
+
+
 SECTION_PATTERNS = {
     "abstract": r"(?is)(?:^|\n)\s*(?:abstract|summary)\s*[:\-]?\s*(.+?)(?=\n\s*(?:introduction|1[\.\)]|keywords|background|index terms)\b)",
     "introduction": r"(?is)(?:^|\n)\s*(?:1[\.\)]?\s*)?introduction\s*[:\-]?\s*(.+?)(?=\n\s*(?:2[\.\)]|related work|methods?|materials)\b)",
@@ -28,6 +32,11 @@ class ParsedDocument:
     document_type: str = "scientific_paper"
     parsing_confidence: float = 0.5
     sections_found: list[str] = field(default_factory=list)
+    authors: list[str] = field(default_factory=list)
+    institutions: list[str] = field(default_factory=list)
+    affiliations: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+    references: list[str] = field(default_factory=list)
 
 
 def _strip_metadata(text: str) -> str:
@@ -37,9 +46,98 @@ def _strip_metadata(text: str) -> str:
     return text
 
 
+def _looks_like_pdf_structure(text: str) -> bool:
+    """Identify PDF/XML internals before they are scored as research content."""
+    markers = re.findall(
+        r"(?i)(?:\b(?:endobj|startxref|xref|pdfaProperty|rdf:|dc:identifier)\b|Parent\s+\d+\s+\d+\s+R|/Type\s*/|/Title\()",
+        text,
+    )
+    words = re.findall(r"[A-Za-z]{3,}", text)
+    return len(markers) >= 3 or (len(text) > 300 and len(words) < len(text) / 30)
+
+
 def _extract_section(text: str, pattern: str) -> str | None:
     match = re.search(pattern, text)
     return match.group(1).strip() if match else None
+
+
+def _extract_authors(text: str) -> list[str]:
+    """Extract author names from document text."""
+    authors = []
+    # Common author patterns
+    patterns = [
+        r"(?i)(?:authors?|by)[\s:]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}(?:,\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})*)",
+        r"(?i)^([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}),\s*[A-Z][a-z]+",
+        r"(?i)([A-Z][a-z]+,\s*[A-Z][a-z]+\s+and\s+[A-Z][a-z]+)",
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, text[:5000])
+        authors.extend(matches[:10])
+    # Clean and deduplicate
+    authors = list(set([a.strip() for a in authors if len(a.strip()) > 2]))
+    return authors[:10]
+
+
+def _extract_institutions(text: str) -> list[str]:
+    """Extract institution names from document text."""
+    institutions = []
+    # Common institution patterns
+    patterns = [
+        r"(?i)(?:university|institute|laboratory|college|school)[\s,]+(?:of|for)?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)",
+        r"(?i)([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\s+(?:University|Institute|Laboratory|College))",
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, text[:5000])
+        institutions.extend(matches)
+    # Clean and deduplicate
+    institutions = list(set([i.strip() for i in institutions if len(i.strip()) > 3]))
+    return institutions[:5]
+
+
+def _extract_keywords(text: str) -> list[str]:
+    """Extract keywords from document text."""
+    keywords = []
+    # Look for keywords section
+    keyword_pattern = r"(?i)(?:keywords?|index terms)[\s:]+(.+?)(?:\n|$|abstract|introduction)"
+    match = re.search(keyword_pattern, text[:3000])
+    if match:
+        keyword_text = match.group(1)
+        # Split by common delimiters
+        keywords = re.split(r"[,;·•\n]", keyword_text)
+    else:
+        # Extract technical terms as fallback
+        technical_terms = [
+            "synthesis", "fabrication", "characterization", "optimization", "analysis",
+            "performance", "efficiency", "stability", "durability", "scalability",
+            "materials", "composite", "nanoparticle", "polymer", "ceramic", "alloy",
+            "processing", "manufacturing", "testing", "validation", "evaluation",
+            "properties", "structure", "composition", "morphology", "surface",
+            "energy", "storage", "conversion", "generation", "transmission",
+            "carbon", "capture", "sequestration", "reduction", "utilization",
+            "catalyst", "reaction", "mechanism", "kinetics", "thermodynamics",
+            "electronic", "optical", "magnetic", "mechanical", "thermal",
+            "device", "system", "application", "implementation", "integration"
+        ]
+        text_lower = text.lower()
+        keywords = [term for term in technical_terms if term in text_lower]
+    
+    # Clean and deduplicate
+    keywords = list(set([k.strip() for k in keywords if len(k.strip()) > 2]))
+    return keywords[:15]
+
+
+def _extract_references(text: str) -> list[str]:
+    """Extract reference citations from document text."""
+    references = []
+    # Look for references section
+    ref_pattern = r"(?i)(?:references|bibliography)[\s:]+(.+)"
+    match = re.search(ref_pattern, text[-10000:])
+    if match:
+        ref_text = match.group(1)
+        # Extract individual references
+        ref_matches = re.findall(r"\[\d+\][^\[\]]{20,200}", ref_text)
+        references = ref_matches[:20]
+    return references
 
 
 def _infer_document_type(text: str, filename: str) -> str:
@@ -236,9 +334,14 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
                     extraction_method = "OCR not available (requires pytesseract and Pillow)"
                     pass
             
-            # Method 5: Last resort - decode with extensive cleaning
+            # Never decode raw PDF bytes as a last resort. It produces PDF/XMP
+            # object syntax which is not document text and must not be analyzed.
             if not raw or len(raw.strip()) < 50:
-                try:
+                raise DocumentExtractionError(
+                    "No usable scientific text could be extracted from this PDF. "
+                    "Upload a text-based PDF/DOCX, or a PDF with an OCR text layer."
+                )
+                try:  # pragma: no cover - retained only as historical reference
                     raw = content.decode('utf-8', errors='ignore')
                     # Comprehensive PDF artifact removal - more aggressive
                     raw = re.sub(r'[^\x20-\x7E\n\r\t]', '', raw)
@@ -273,8 +376,10 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
             if not raw or len(raw.strip()) < 50:
                 raw = f"Document content could not be properly extracted. The PDF may be image-based or corrupted. Extraction method: {extraction_method}. Please try a different file format."
             
+        except DocumentExtractionError:
+            raise
         except Exception as e:
-            raw = f"PDF parsing error: {str(e)}"
+            raise DocumentExtractionError(f"PDF extraction failed: {e}") from e
             
     elif name.endswith(".docx"):
         doc = Document(io.BytesIO(content))
@@ -308,19 +413,32 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     raw = re.sub(r'[<>{}\\]+', '', raw)  # Remove special characters
     raw = re.sub(r'\s+', ' ', raw)  # Clean up whitespace
     
-    # Ensure we have meaningful content
-    if len(raw.strip()) < 50:
-        raw = "Document content could not be properly extracted. Please check the file format and try again."
+    # Never score parser errors or PDF syntax as research content.
+    if len(raw.strip()) < 50 or _looks_like_pdf_structure(raw):
+        raise DocumentExtractionError(
+            "No usable scientific text could be extracted. Upload a text-based PDF, DOCX, or plain-text file."
+        )
     
     doc_type = _infer_document_type(raw, filename)
     abstract, methodology, claims, sections_found, confidence = _extract_sections(raw)
-
+    
+    # Extract additional metadata
+    authors = _extract_authors(raw)
+    institutions = _extract_institutions(raw)
+    keywords = _extract_keywords(raw)
+    references = _extract_references(raw)
+    
     return ParsedDocument(
         raw_text=raw,
         abstract=abstract,
         methodology=methodology,
         claims_outcomes=claims,
         document_type=doc_type,
-        parsing_confidence=round(confidence, 2),
+        parsing_confidence=confidence,
         sections_found=sections_found,
+        authors=authors,
+        institutions=institutions,
+        affiliations=institutions,  # Same as institutions for now
+        keywords=keywords,
+        references=references,
     )
