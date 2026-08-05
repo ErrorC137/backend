@@ -181,14 +181,33 @@ def _extract_references(text: str) -> list[str]:
 
 
 def _infer_document_type(text: str, filename: str) -> str:
-    lower = text[:3000].lower()
+    """Enhanced document type inference for IP-specific structures."""
+    lower = text[:5000].lower()
     name = filename.lower()
+    
+    # Patent-specific patterns
     if "patent" in name or re.search(r"(?i)claim\s+\d+\.", text[:5000]):
         return "patent_draft"
+    if re.search(r"(?i)(independent claim|dependent claim|what is claimed)", text[:5000]):
+        return "patent_application"
+    
+    # Preprint patterns
     if "preprint" in lower or "arxiv" in lower or "biorxiv" in lower:
         return "preprint"
-    if re.search(r"(?i)(technical report|white paper)", text[:2000]):
+    
+    # Technical report patterns
+    if re.search(r"(?i)(technical report|white paper|working paper)", text[:2000]):
         return "technical_report"
+    
+    # Invention disclosure patterns
+    if re.search(r"(?i)(invention disclosure|disclosure form|inventor disclosure)", text[:3000]):
+        return "invention_disclosure"
+    
+    # Research grant proposal patterns
+    if re.search(r"(?i)(grant proposal|research proposal|funding application)", text[:3000]):
+        return "grant_proposal"
+    
+    # Default to scientific paper
     return "scientific_paper"
 
 
