@@ -1,5 +1,5 @@
 """Patent data integration service for originality analysis.
-Supports SERPAPI and Google Patents scraper (free)."""
+Supports SERPAPI, Google Patents scraper (free), and USPTO Open Data Portal."""
 
 import httpx
 import logging
@@ -29,6 +29,8 @@ class PatentDataService:
         self.timeout = 30.0
         self._embeddings_available = False
         self._check_embeddings()
+        self._uspto_available = False
+        self._check_uspto()
     
     def _check_embeddings(self):
         """Check if embedding functionality is available."""
@@ -43,6 +45,17 @@ class PatentDataService:
         except ImportError:
             logger.warning("Embedding module not available, using fallback similarity")
             self._embeddings_available = False
+    
+    def _check_uspto(self):
+        """Check if USPTO API is available."""
+        try:
+            from app.uspto_api import get_uspto_client
+            self._uspto_client = get_uspto_client()
+            self._uspto_available = True
+            logger.info("USPTO API client is available")
+        except ImportError:
+            logger.warning("USPTO API module not available")
+            self._uspto_available = False
     
     async def search_patents_serpapi(
         self, 
@@ -90,6 +103,39 @@ class PatentDataService:
                 
         except Exception as e:
             logger.error(f"Error fetching patents from SERPAPI: {e}")
+            return []
+    
+    async def search_patents_uspto(
+        self, 
+        query: str, 
+        limit: int = 10
+    ) -> List[PatentMatch]:
+        """Search patents using USPTO Open Data Portal via PatentsView API."""
+        if not self._uspto_available:
+            logger.warning("USPTO API not available, skipping USPTO search")
+            return []
+        
+        try:
+            patents = await self._uspto_client.search_patents(query, limit)
+            
+            matches = []
+            for patent in patents:
+                match = PatentMatch(
+                    patent_id=patent.patent_id,
+                    title=patent.title,
+                    abstract=patent.abstract,
+                    assignee=patent.assignee,
+                    filing_date=patent.filing_date,
+                    similarity_score=0.0,  # Will be calculated separately
+                    url=f"https://patents.google.com/patent/{patent.patent_id}"
+                )
+                matches.append(match)
+            
+            logger.info(f"Found {len(matches)} patents via USPTO API")
+            return matches
+            
+        except Exception as e:
+            logger.error(f"Error fetching patents from USPTO: {e}")
             return []
     
     async def search_patents_google_scraper(
@@ -155,15 +201,23 @@ class PatentDataService:
         limit: int = 10
     ) -> Dict[str, Any]:
         """Get comprehensive patent analysis from multiple sources."""
-        # Try SERPAPI first
-        serpapi_matches = await self.search_patents_serpapi(query, limit)
+        # Try USPTO API first (enterprise-grade source)
+        uspto_matches = await self.search_patents_uspto(query, limit)
         
-        # Try Google Patents scraper as backup
+        # Try SERPAPI as backup
+        serpapi_matches = []
+        if len(uspto_matches) < limit:
+            serpapi_matches = await self.search_patents_serpapi(query, limit - len(uspto_matches))
+        
+        # Try Google Patents scraper as final backup
         google_matches = []
-        if len(serpapi_matches) < limit:
-            google_matches = await self.search_patents_google_scraper(query, limit - len(serpapi_matches))
+        if len(uspto_matches) + len(serpapi_matches) < limit:
+            google_matches = await self.search_patents_google_scraper(
+                query, 
+                limit - len(uspto_matches) - len(serpapi_matches)
+            )
         
-        all_matches = serpapi_matches + google_matches
+        all_matches = uspto_matches + serpapi_matches + google_matches
         
         # Calculate similarity scores using embedding-based semantic search when available
         for match in all_matches:
