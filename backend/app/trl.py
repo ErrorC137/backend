@@ -97,6 +97,42 @@ def _evaluate_trl_regex(
     trl = 3  # Default to TRL 3 (lab validation)
     
     # TRL 9: Actual system proven in successful operational environment
+    # Strict NASA/Horizon Europe TRL milestone definitions with evidence requirements
+    # TRL assessment now requires verifiable evidence for advancement
+    
+    # Evidence requirements for each TRL level
+    evidence_requirements = {
+        1: ["basic research", "fundamental principle", "scientific observation", "theoretical study"],
+        2: ["technology concept", "theoretical framework", "computational model", "concept formulation"],
+        3: ["experiment", "lab test", "proof of concept", "experimental validation", "bench-scale"],
+        4: ["prototype", "functional model", "laboratory validation", "component integration"],
+        5: ["relevant environment", "validation in relevant", "component integration", "system integration"],
+        6: ["demonstration", "relevant environment", "system performance", "engineering model"],
+        7: ["operational environment", "pilot scale", "demonstration system", "field test"],
+        8: ["production ready", "qualified system", "manufacturing readiness", "certification"],
+        9: ["operational", "commercial production", "market deployment", "proven system"]
+    }
+    
+    # Check for evidence presence before assigning TRL
+    def check_evidence_for_trl(target_trl: int, text: str) -> tuple[bool, list[str]]:
+        """Check if sufficient evidence exists for target TRL level."""
+        if target_trl not in evidence_requirements:
+            return False, []
+        
+        required_evidence = evidence_requirements[target_trl]
+        found_evidence = []
+        
+        for evidence_type in required_evidence:
+            if re.search(evidence_type, text, re.IGNORECASE):
+                found_evidence.append(evidence_type)
+        
+        # Require at least 50% of evidence types for TRL assignment
+        evidence_ratio = len(found_evidence) / len(required_evidence)
+        has_sufficient_evidence = evidence_ratio >= 0.5
+        
+        return has_sufficient_evidence, found_evidence
+    
+    # Initial TRL assessment based on keywords
     if re.search(r"production\s+ready|fully\s+operational|commercial\s+production|mass\s+production|certified\s+for\s+use|fda\s+approved|market\s+launch|full\s+scale\s+manufacturing", text):
         trl = 9
     # TRL 8: System complete and qualified
@@ -123,7 +159,14 @@ def _evaluate_trl_regex(
     # TRL 1: Basic principles observed
     elif re.search(r"basic\s+research|fundamental\s+research|principle\s+observed|scientific\s+principle|research\s+principle", text):
         trl = 1
-
+    
+    # Verify evidence for assigned TRL, downgrade if insufficient
+    has_evidence, found_evidence = check_evidence_for_trl(trl, text)
+    if not has_evidence and trl > 1:
+        trl = max(1, trl - 1)  # Downgrade by one level
+        # Re-check for lower TRL
+        has_evidence, found_evidence = check_evidence_for_trl(trl, text)
+    
     # Enhanced TRL adjustment based on multiple indicators
     trl_indicators = 0
     
