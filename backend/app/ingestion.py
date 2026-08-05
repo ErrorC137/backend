@@ -37,6 +37,8 @@ class ParsedDocument:
     affiliations: list[str] = field(default_factory=list)
     keywords: list[str] = field(default_factory=list)
     references: list[str] = field(default_factory=list)
+    team_expertise_score: float = 0.5
+    institution_reputation_score: float = 0.5
 
 
 def _strip_metadata(text: str) -> str:
@@ -92,6 +94,44 @@ def _extract_institutions(text: str) -> list[str]:
     # Clean and deduplicate
     institutions = list(set([i.strip() for i in institutions if len(i.strip()) > 3]))
     return institutions[:5]
+
+
+def _assess_institution_reputation(institutions: list[str]) -> float:
+    """Assess institution reputation based on keywords."""
+    if not institutions:
+        return 0.3  # Low score if no institutions found
+    
+    reputation_keywords = {
+        "high": ["mit", "stanford", "harvard", "caltech", "oxford", "cambridge", "eth", "imperial", "national", "federal", "institute"],
+        "medium": ["university", "college", "laboratory", "research", "technology", "science"],
+    }
+    
+    institution_text = " ".join(institutions).lower()
+    score = 0.5  # Base score
+    
+    for keyword in reputation_keywords["high"]:
+        if keyword in institution_text:
+            score += 0.15
+    
+    for keyword in reputation_keywords["medium"]:
+        if keyword in institution_text:
+            score += 0.05
+    
+    return min(1.0, score)
+
+
+def _assess_author_expertise(authors: list[str], institutions: list[str]) -> float:
+    """Assess author expertise based on count and affiliations."""
+    if not authors:
+        return 0.2  # Low score if no authors found
+    
+    # More authors generally indicates larger team/collaboration
+    author_score = min(0.6, len(authors) * 0.1)
+    
+    # Institution reputation contributes to expertise assessment
+    institution_score = _assess_institution_reputation(institutions) * 0.4
+    
+    return min(1.0, author_score + institution_score)
 
 
 def _extract_keywords(text: str) -> list[str]:
@@ -428,6 +468,10 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
     keywords = _extract_keywords(raw)
     references = _extract_references(raw)
     
+    # Assess team expertise based on authors and institutions
+    team_expertise_score = _assess_author_expertise(authors, institutions)
+    institution_reputation_score = _assess_institution_reputation(institutions)
+    
     return ParsedDocument(
         raw_text=raw,
         abstract=abstract,
@@ -441,4 +485,6 @@ def parse_upload(filename: str, content: bytes) -> ParsedDocument:
         affiliations=institutions,  # Same as institutions for now
         keywords=keywords,
         references=references,
+        team_expertise_score=team_expertise_score,
+        institution_reputation_score=institution_reputation_score,
     )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import os
 import time
 
 from app.classifier import classify_document
@@ -91,6 +92,7 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
         classification=classification,
         valuation=valuation,
         title_hint=doc.abstract[:120] if doc.abstract else "",
+        doc=doc,
     )
 
     # Perform comprehensive NLP analysis
@@ -132,9 +134,10 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
     total_time = time.time() - start_time
     api_usage["total_analysis_time"] = round(total_time, 2)
 
-    # Generate comprehensive analysis with detailed paragraphs
-    # Use rule-based analysis until API keys are configured
-    comprehensive_analysis = generate_comprehensive_analysis(
+    # Use the multi-agent system when at least one configured provider is
+    # available.  The integration layer falls back to the deterministic report
+    # if an upstream provider is unavailable or fails.
+    comprehensive_analysis = await generate_comprehensive_analysis(
         doc=doc,
         classification=classification,
         originality=originality,
@@ -144,7 +147,7 @@ async def run_analysis(filename: str, content: bytes) -> dict[str, Any]:
         market_mapping=market_mapping,
         nlp_analysis=nlp_analysis,
         title=doc.abstract[:100] if doc.abstract else filename,
-        use_multi_agent=False,  # Disabled until API keys configured
+        use_multi_agent=os.getenv("ENABLE_MULTI_AGENT", "true").lower() == "true",
     )
 
     result = {

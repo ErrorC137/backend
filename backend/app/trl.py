@@ -24,6 +24,20 @@ def _milestone_status(trl: int, completed_at: int, current_at: int | tuple[int, 
     return "future"
 
 
+def _generate_team_assessment(team_expertise_score: float, institution_reputation_score: float) -> str:
+    """Generate team assessment based on extracted author and institution data."""
+    overall_score = (team_expertise_score + institution_reputation_score) / 2
+    
+    if overall_score >= 0.8:
+        return f"Strong research team with high expertise ({team_expertise_score:.2f}) and reputable institutional affiliations ({institution_reputation_score:.2f}). The team demonstrates strong capability for executing complex research and development projects."
+    elif overall_score >= 0.6:
+        return f"Capable research team with moderate expertise ({team_expertise_score:.2f}) and solid institutional backing ({institution_reputation_score:.2f}). The team shows good potential for successful project execution."
+    elif overall_score >= 0.4:
+        return f"Research team with developing expertise ({team_expertise_score:.2f}) and moderate institutional support ({institution_reputation_score:.2f}). Additional expertise or partnerships may enhance project success."
+    else:
+        return f"Early-stage research team with limited documented expertise ({team_expertise_score:.2f}) and institutional backing ({institution_reputation_score:.2f}). Team development and strategic partnerships recommended for project advancement."
+
+
 def evaluate_trl(
     analysis_text: str,
     *,
@@ -31,11 +45,20 @@ def evaluate_trl(
     valuation: dict[str, Any] | None = None,
     title_hint: str = "",
     use_deepseek: bool = True,
+    doc: Any = None,
 ) -> dict[str, Any]:
     """
     Infer NASA/EU TRL 1–9 from document text and pipeline signals.
     Uses DeepSeek API for enhanced analysis when available, falls back to regex-based evaluation.
     """
+    # Extract team expertise from document if available
+    team_expertise_score = 0.5
+    institution_reputation_score = 0.5
+    if doc and hasattr(doc, 'team_expertise_score'):
+        team_expertise_score = doc.team_expertise_score
+    if doc and hasattr(doc, 'institution_reputation_score'):
+        institution_reputation_score = doc.institution_reputation_score
+    
     # Try DeepSeek-enhanced evaluation first if available and enabled
     if use_deepseek and DEEPSEEK_AVAILABLE:
         try:
@@ -47,12 +70,14 @@ def evaluate_trl(
             )
             # Add analysis source indicator
             result["analysis_source"] = f"{result.get('analysis_source', 'unknown')}"
+            result["team_expertise_score"] = team_expertise_score
+            result["institution_reputation_score"] = institution_reputation_score
             return result
         except Exception as e:
             print(f"DeepSeek evaluation failed, falling back to regex: {e}")
     
     # Fallback to original regex-based evaluation
-    return _evaluate_trl_regex(analysis_text, classification=classification, valuation=valuation, title_hint=title_hint)
+    return _evaluate_trl_regex(analysis_text, classification=classification, valuation=valuation, title_hint=title_hint, team_expertise_score=team_expertise_score, institution_reputation_score=institution_reputation_score)
 
 
 def _evaluate_trl_regex(
@@ -61,6 +86,8 @@ def _evaluate_trl_regex(
     classification: dict[str, Any] | None = None,
     valuation: dict[str, Any] | None = None,
     title_hint: str = "",
+    team_expertise_score: float = 0.5,
+    institution_reputation_score: float = 0.5,
 ) -> dict[str, Any]:
     """Original regex-based TRL evaluation as fallback with improved accuracy."""
     text = f"{title_hint}\n{analysis_text}".lower()
@@ -285,16 +312,18 @@ def _evaluate_trl_regex(
             ])
 
     return {
-        "trl": trl,
-        "trl_summary": trl_summary,
-        "accomplishments": accomplishments,
-        "potential_partnership": partnership,
+        "estimated_trl": trl,
+        "confidence": min(0.95, 0.6 + trl_indicators * 0.05),
         "innovation_score": innovation_score,
+        "accomplishments": accomplishments,
+        "detailed_analysis": detailed_analysis,
+        "trl_summary": trl_summary,
+        "partnership": partnership,
         "milestones": milestones,
-        "sector_name": sector,
-        "analysis_source": "regex-fallback",
-        "confidence": 0.6,
         "key_indicators": key_indicators,
         "missing_for_next_trl": missing_for_next_trl,
-        "detailed_analysis": detailed_analysis
+        "analysis_source": "rule-based-trl",
+        "team_expertise_score": team_expertise_score,
+        "institution_reputation_score": institution_reputation_score,
+        "team_assessment": _generate_team_assessment(team_expertise_score, institution_reputation_score),
     }
