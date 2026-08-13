@@ -1,1 +1,1 @@
-{"model": "AI-Growth-Lab/PatentSBERTa", "count": 100, "embedding_dimensions": 768}
+{"provider": "unknown", "model": "text-embedding-3-small", "count": 100, "embedding_dimensions": 1536}

@@ -42,20 +42,91 @@ class ParsedDocument:
 
 
 def _strip_metadata(text: str) -> str:
+    # Remove PDF/XMP/RDF metadata artifacts
+    text = re.sub(r"<\?xml[^>]*>", "", text)
+    text = re.sub(r"<rdf:[^>]*>.*?</rdf:[^>]*>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<dc:[^>]*>.*?</dc:[^>]*>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<xmp:[^>]*>.*?</xmp:[^>]*>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<pdf:[^>]*>.*?</pdf:[^>]*>", "", text, flags=re.DOTALL)
+    text = re.sub(r"</?rdf:[^>]*>", "", text)
+    text = re.sub(r"</?dc:[^>]*>", "", text)
+    text = re.sub(r"</?xmp:[^>]*>", "", text)
+    text = re.sub(r"</?pdf:[^>]*>", "", text)
+    text = re.sub(r"<\?xpacket[^>]*>", "", text)
+    text = re.sub(r"</?xpacket>", "", text)
+    
+    # Remove PDF structure markers
+    text = re.sub(r"\bendobj\b", "", text)
+    text = re.sub(r"\bstartxref\b", "", text)
+    text = re.sub(r"\bxref\b", "", text)
+    text = re.sub(r"\bstream\b", "", text)
+    text = re.sub(r"\bendstream\b", "", text)
+    text = re.sub(r"\bobj\b", "", text)
+    text = re.sub(r"\btrailer\b", "", text)
+    text = re.sub(r"\bRoot\b", "", text)
+    text = re.sub(r"\bInfo\b", "", text)
+    text = re.sub(r"\bSize\b", "", text)
+    text = re.sub(r"\bPrev\b", "", text)
+    
+    # Remove PDF object references like "12 0 R"
+    text = re.sub(r"\b\d+\s+\d+\s+R\b", "", text)
+    
+    # Remove PDF dictionary structures
+    text = re.sub(r"<<.*?>>", "", text, flags=re.DOTALL)
+    text = re.sub(r"\[.*?\]", "", text, flags=re.DOTALL)
+    
+    # Remove base64-encoded content
+    text = re.sub(r"[A-Za-z0-9+/]{50,}={0,2}", "", text)
+    
+    # Remove hex-encoded content
+    text = re.sub(r"<[0-9A-Fa-f]{20,}>", "", text)
+    
+    # Remove common PDF artifact patterns
+    text = re.sub(r"/Type\s*/\w+", "", text)
+    text = re.sub(r"/Subtype\s*/\w+", "", text)
+    text = re.sub(r"/Filter\s*/\w+", "", text)
+    text = re.sub(r"/Length\s+\d+", "", text)
+    text = re.sub(r"/Parent\s+\d+\s+\d+\s+R", "", text)
+    text = re.sub(r"/Kids\s*\[.*?\]", "", text, flags=re.DOTALL)
+    text = re.sub(r"/Count\s+\d+", "", text)
+    text = re.sub(r"/Resources\s*<<.*?>>", "", text, flags=re.DOTALL)
+    text = re.sub(r"/MediaBox\s*\[.*?\]", "", text, flags=re.DOTALL)
+    text = re.sub(r"/CropBox\s*\[.*?\]", "", text, flags=re.DOTALL)
+    text = re.sub(r"/Rotate\s+\d+", "", text)
+    
+    # Remove IEEE-specific PDF artifacts
+    text = re.sub(r"<rdf:Seq>.*?</rdf:Seq>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<rdf:Alt>.*?</rdf:Alt>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<rdf:li>.*?</rdf:li>", "", text, flags=re.DOTALL)
+    
+    # Remove author/affiliation metadata (original)
     text = re.sub(r"(?i)(corresponding author|affiliation|university of)[^\n]{0,120}", "", text)
     text = re.sub(r"(?i)(email|@)[^\s]{3,80}", "", text)
     text = re.sub(r"(?i)^\s*arxiv:[^\n]+\n", "", text)
+    
     return text
 
 
 def _looks_like_pdf_structure(text: str) -> bool:
     """Identify PDF/XML internals before they are scored as research content."""
     markers = re.findall(
-        r"(?i)(?:\b(?:endobj|startxref|xref|pdfaProperty|rdf:|dc:identifier)\b|Parent\s+\d+\s+\d+\s+R|/Type\s*/|/Title\()",
+        r"(?i)(?:\b(?:endobj|startxref|xref|pdfaProperty|rdf:|dc:identifier|stream|endstream|obj|trailer)\b|Parent\s+\d+\s+\d+\s+R|/Type\s/(?:Page|Catalog|Font|ExtGState)|/Title\(|/Contents\s+\d+)",
         text,
     )
+    # Check for XML/RDF tags
+    xml_tags = re.findall(r"<(?:rdf:|dc:|xmp:|pdf:)[^>]*>", text)
+    
+    # Check for PDF object references
+    obj_refs = re.findall(r"\b\d+\s+\d+\s+R\b", text)
+    
+    # Check for PDF dictionary structures
+    dict_structures = re.findall(r"<<.*?>>", text, flags=re.DOTALL)
+    
     words = re.findall(r"[A-Za-z]{3,}", text)
-    return len(markers) >= 3 or (len(text) > 300 and len(words) < len(text) / 30)
+    
+    # More aggressive detection
+    total_indicators = len(markers) + len(xml_tags) + len(obj_refs) + len(dict_structures)
+    return total_indicators >= 5 or (len(text) > 300 and len(words) < len(text) / 30)
 
 
 def _extract_section(text: str, pattern: str) -> str | None:

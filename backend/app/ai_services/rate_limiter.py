@@ -60,15 +60,15 @@ class RateLimiter:
             return False, f"Rate limit exceeded: {len(recent_hour_requests)} requests in the last hour (limit: {self.config.requests_per_hour})"
         
         # Check tokens per minute
-        recent_tokens = [t for t, tokens in self.token_usage if t > minute_ago]
-        total_tokens = sum(tokens for _, tokens in recent_tokens)
+        recent_tokens = [(t, tokens) for t, tokens in self.token_usage if t > minute_ago]
+        total_tokens = sum(tokens for t, tokens in recent_tokens)
         
         if total_tokens + tokens > self.config.tokens_per_minute:
             return False, f"Token rate limit exceeded: {total_tokens + tokens} tokens in the last minute (limit: {self.config.tokens_per_minute})"
         
         # Check cost per hour
-        recent_costs = [t for t, cost in self.cost_tracking if t > hour_ago]
-        total_cost = sum(cost for _, cost in recent_costs)
+        recent_costs = [(t, cost) for t, cost in self.cost_tracking if t > hour_ago]
+        total_cost = sum(cost for t, cost in recent_costs)
         
         if total_cost + cost_usd > self.config.cost_per_hour_usd:
             return False, f"Cost limit exceeded: ${total_cost + cost_usd:.2f} in the last hour (limit: ${self.config.cost_per_hour_usd:.2f})"

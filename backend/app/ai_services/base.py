@@ -49,7 +49,10 @@ class BaseAIProvider(ABC):
     
     def __init__(self, config: AIModelConfig):
         self.config = config
-        self.client = httpx.Client(timeout=60.0)
+        # Providers are used from the async analysis pipeline.  Using an async
+        # client prevents a slow upstream model request from blocking the API
+        # server's event loop and all other document uploads.
+        self.client = httpx.AsyncClient(timeout=60.0)
     
     @abstractmethod
     async def generate(
@@ -67,9 +70,9 @@ class BaseAIProvider(ABC):
         """Calculate the cost of the API call."""
         pass
     
-    def close(self):
+    async def close(self):
         """Close the HTTP client."""
-        self.client.close()
+        await self.client.aclose()
 
 
 class AnthropicProvider(BaseAIProvider):
@@ -110,7 +113,7 @@ class AnthropicProvider(BaseAIProvider):
             payload["system"] = system_prompt
         
         try:
-            response = self.client.post(
+            response = await self.client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers=headers,
                 json=payload,
@@ -200,7 +203,7 @@ class OpenRouterProvider(BaseAIProvider):
         }
         
         try:
-            response = self.client.post(
+            response = await self.client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json=payload,
@@ -287,7 +290,7 @@ class GoogleProvider(BaseAIProvider):
         }
         
         try:
-            response = self.client.post(
+            response = await self.client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{self.config.model}:generateContent?key={self.api_key}",
                 headers=headers,
                 json=payload,
@@ -376,7 +379,7 @@ class DeepSeekProvider(BaseAIProvider):
         }
         
         try:
-            response = self.client.post(
+            response = await self.client.post(
                 "https://api.deepseek.com/v1/chat/completions",
                 headers=headers,
                 json=payload,
@@ -434,6 +437,7 @@ class AIService:
     def __init__(self):
         self.providers: dict[Provider, BaseAIProvider] = {}
         self.provider_priority: list[Provider] = []
+        self._provider_priorities: dict[Provider, int] = {}
         self.cost_tracking_enabled = os.getenv("COST_MONITORING_ENABLED", "true").lower() == "true"
         self.total_cost_usd = 0.0
         self.total_tokens = 0
@@ -443,8 +447,11 @@ class AIService:
     def add_provider(self, provider: BaseAIProvider, priority: int = 0):
         """Add a provider with priority (lower = higher priority)."""
         self.providers[provider.config.provider] = provider
-        self.provider_priority.append(provider.config.provider)
-        self.provider_priority.sort(key=lambda p: priority if p == provider.config.provider else 0)
+        self._provider_priorities[provider.config.provider] = priority
+        self.provider_priority = sorted(
+            self.providers,
+            key=lambda configured_provider: self._provider_priorities[configured_provider],
+        )
     
     async def generate(
         self,
@@ -544,10 +551,10 @@ class AIService:
             ),
         }
     
-    def close(self):
+    async def close(self):
         """Close all provider clients."""
         for provider in self.providers.values():
-            provider.close()
+            await provider.close()
 
 
 def create_ai_service() -> AIService:

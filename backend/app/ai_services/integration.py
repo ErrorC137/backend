@@ -10,7 +10,6 @@ from app.ai_services.agents.qa_agent import QualityAssuranceAgent, QAValidationR
 from app.ai_services.agents.synthesis_agent import SynthesisAgent, SynthesisResult
 from app.ai_services.base import AIService, create_ai_service
 from app.ai_services.rate_limiter import get_cost_monitor, get_rate_limiter
-from app.comprehensive_analysis import generate_comprehensive_analysis
 
 
 class MultiAgentAnalysis:
@@ -26,6 +25,8 @@ class MultiAgentAnalysis:
         if self.enabled:
             try:
                 self.ai_service = create_ai_service()
+                if not self.ai_service.providers:
+                    raise ValueError("No AI provider API key is configured")
                 self.coordinator = AgentCoordinator(self.ai_service, timeout=self.timeout)
                 self.synthesis_agent = SynthesisAgent(self.ai_service)
                 self.qa_agent = QualityAssuranceAgent(self.ai_service)
@@ -386,7 +387,11 @@ Investment attractiveness: {valuation.get('investment_attractiveness', 'Unknown'
     ) -> dict[str, Any]:
         """Fallback to rule-based comprehensive analysis."""
         
-        result = generate_comprehensive_analysis(
+        # Import lazily to avoid a circular import: comprehensive_analysis
+        # imports this integration module when multi-agent support is enabled.
+        from app.comprehensive_analysis import _generate_rule_based_analysis
+
+        result = _generate_rule_based_analysis(
             doc=doc,
             classification=classification,
             originality=originality,

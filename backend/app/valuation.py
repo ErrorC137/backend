@@ -43,6 +43,34 @@ def calculate_valuation(
     originality: dict[str, Any] | None = None,
     fto: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # A sector lookup is not evidence of what this particular IP is worth.
+    # Do not turn generic benchmark figures into a user-facing price. A real
+    # valuation needs verified rights, comparable transactions, market inputs,
+    # development cost, and an expert review; this engine can only prepare the
+    # evidence package from a paper.
+    return {
+        "valuation_available": False,
+        "valuation_status": "insufficient_verified_evidence",
+        "valuation_message": (
+            "No monetary valuation was issued. The submission does not provide "
+            "the verified transaction comparables, ownership/rights, market, cost, "
+            "and commercial evidence required for an IP valuation."
+        ),
+        "v_baseline_usd": 0.0,
+        "valuation_range_usd": None,
+        "s_originality": max(0.0, min(0.30, originality_premium)),
+        "r_fto": max(0.0, min(0.50, r_fto)),
+        "v_target_usd": 0.0,
+        "valuation_floor_usd": 0.0,
+        "tokenization_anchor_usd": 0.0,
+        "royalty_rate_baseline": 0.0,
+        "sector_name": (classification or {}).get("sector_name", "Unclassified"),
+        "formula": "Not calculated without verified valuation evidence",
+        "hitl_reserved_pct": 100,
+        "automated_anchor_pct": 0,
+        "audit_trail": [],
+    }
+
     with open(_DATA_DIR / "industry_baselines.json", encoding="utf-8") as f:
         baselines = json.load(f)
 

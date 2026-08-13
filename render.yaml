@@ -31,6 +31,24 @@ services:
         value: text-embedding-3-small
       - key: DEEPSEEK_API_KEY
         sync: false
+      # At least one provider is required for AI-enhanced reports. The service
+      # automatically falls back to deterministic analysis when none is set.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-3-5-sonnet-20240620
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: anthropic/claude-3.5-sonnet
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_MODEL
+        value: gemini-1.5-pro
+      - key: ENABLE_MULTI_AGENT
+        value: "true"
+      - key: AGENT_FALLBACK_TO_RULES
+        value: "true"
       # Patent data sources
       - key: SERPAPI_KEY
         sync: false
